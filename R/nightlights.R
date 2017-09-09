@@ -321,6 +321,8 @@ processNLCountry <- function(ctryCode, nlPeriod, nlType, cropMaskMethod=pkgOptio
 #' @examples
 #' \dontrun{getCtryRasterOutputFname("KEN","VIIRS", "201412")}
 #'
+#'#export for exploreData() shiny app
+#'@export
 getCtryRasterOutputFname <- function(ctryCode, nlType, nlPeriod)
 {
   if(missing(ctryCode))
@@ -555,10 +557,12 @@ processNlData <- function (ctryCodes=getAllNlCtryCodes("all"), nlPeriods=getAllN
       for (tile in tileList)
       {
         #del the tif file
-        file.remove(getNlTileTifLclNamePath(nlPeriod, tileName2Idx(tile, nlType)))
+        if (file.exists(getNlTileTifLclNamePath(nlType, nlPeriod, tileName2Idx(tile, nlType))))
+          file.remove(file.path(getNlTileTifLclNamePath(nlType, nlPeriod, tileName2Idx(tile, nlType))))
         
         #del the zip file
-        file.remove(getNlTileZipLclNamePath(nlPeriod, tileName2Idx(tile, nlType)))
+        if (file.exists(file.path(getNlTileZipLclNamePath(nlType, nlPeriod, tileName2Idx(tile, nlType)))))
+          file.remove(file.path(getNlTileZipLclNamePath(nlType, nlPeriod, tileName2Idx(tile, nlType))))
       }
   }
 }

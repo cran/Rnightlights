@@ -37,7 +37,8 @@ createCtryNlDataDF <- function(ctryCode)
   ctryPolyAdmLevels <- tolower(ctryPolyAdmLevels)
   
   #add the area as reported by the polygon shapefile as a convenience
-  areas <- raster::area(ctryPoly)
+  #converted to sq. km.
+  areas <- raster::area(ctryPoly)/1e6
   
   if (length(ctryPolyAdmLevels) > 0)
   {
@@ -61,7 +62,7 @@ createCtryNlDataDF <- function(ctryCode)
     ctryNlDataDF <- as.data.frame(ctryPoly@data[,eval(ctryPolyAdmCols)])
     
     #add the area as reported by the polygon shapefile as a convenience
-    areas <- raster::area(ctryPoly)
+    areas <- raster::area(ctryPoly)/1e6
     
     #we add the country code to ensure even a renamed file is identifiable
     #repeat ctryCode for each row in the polygon. equiv of picking layer0
@@ -735,7 +736,7 @@ listCtryNlData <- function(ctryCodes=NULL, nlPeriods=NULL, nlTypes=NULL, source=
   dataList <- as.data.frame(dataList, row.names = 1:nrow(dataList))
   
   #label the columns
-  names(dataList) <- c("ctryCode", "dataType", "nlType", "nlPeriod", paste0("stat", 1:(ncol(dataList)-4)))
+  names(dataList) <- c("ctryCode", "dataType", "nlType", "nlPeriod", "stats")
   
   #filters
   #filter by ctryCode if supplied
@@ -860,8 +861,9 @@ listCtryNlRasters <- function(ctryCodes=NULL, nlPeriods=NULL, nlTypes=NULL, sour
 #' #list all VIIRS tiles
 #' listNlTiles(nlTypes = "VIIRS")
 #' 
-#' #list all VIIRS tiles available in the years 2012-2014
-#' listNlTiles(nlTypes = "VIIRS", nlPeriods = nlRange("201201", "201412"))
+#' #list all VIIRS tiles available in the years 2012-2014. Note VIIRS data
+#' #starts in 201204
+#' listNlTiles(nlTypes = "VIIRS", nlPeriods = nlRange("201204", "201412"))
 #' 
 #' #filter data
 #' listNlTiles(nlTypes = "OLS", nlPeriods = c("2012", "2013"))
@@ -871,6 +873,7 @@ listNlTiles <- function(nlTypes=NULL, nlPeriods=NULL, source="local")
 {
   nlType <- NULL #appease CRAN note for global variables
   nlPeriod <- NULL #appease CRAN note for global variables
+  tileName <- NULL #appease CRAN note for global variables
   
   if(source=="remote")
   {
@@ -880,7 +883,7 @@ listNlTiles <- function(nlTypes=NULL, nlPeriods=NULL, source="local")
   }
   
   #get a list of country data files present
-  rasterList <- list.files(getNlDir("dirNlTiles"), pattern = ".tif")
+  rasterList <- list.files(getNlDir("dirNlTiles"), pattern = ".tif$")
   
   if(length(rasterList) == 0)
     return(NULL)
@@ -893,7 +896,7 @@ listNlTiles <- function(nlTypes=NULL, nlPeriods=NULL, source="local")
   rasterList <- as.data.frame(rasterList)
   
   #label the columns
-  names(rasterList) <- c("nlType", "nlPeriod")
+  names(rasterList) <- c("nlType", "nlPeriod", "tileName")
   
   #filters
   #filter by nlType if supplied
@@ -905,7 +908,7 @@ listNlTiles <- function(nlTypes=NULL, nlPeriods=NULL, source="local")
     rasterList <- rasterList[which(rasterList[,"nlPeriod"] %in% nlPeriods),]
   
   #Reorder the columns
-  rasterList <- dplyr::select(rasterList, nlType, nlPeriod)
+  rasterList <- dplyr::select(rasterList, nlType, nlPeriod, tileName)
   
   #only return list if we have records esp. after filtering else return NULL
   if(nrow(rasterList) > 0)

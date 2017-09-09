@@ -1,6 +1,6 @@
 Package: Rnightlights
-Version: 0.1.1
-Date: 2017-08-01
+Version: 0.1.2
+Date: 2017-09-09
 Title: Satellite Nightlight Data Extraction
 Description: The Rnightlights package extracts raster and zonal statistics
     from satellite nightlight rasters downloaded from the United States 
@@ -29,9 +29,9 @@ Suggests: dendextend, ggdendro, ggplot2, leaflet, plotly, RColorBrewer,
 SystemRequirements: gdal wget curl aria2
 RoxygenNote: 6.0.1
 BugReports: https://github.com/chrisvwn/Rnightlights/issues
-URL: https://github.com/HenrikBengtsson/R.cache/issues
+URL: https://github.com/chrisvwn/Rnightlights
 NeedsCompilation: no
-Packaged: 2017-08-16 08:34:53 UTC; chris
+Packaged: 2017-09-09 17:12:42 UTC; chris
 Author: Christopher Njuguna [aut, cre, cph],
   Henrik Bengtsson [ctb] (data setup,
     https://cran.r-project.org/package=R.cache),
@@ -44,4 +44,4 @@ Author: Christopher Njuguna [aut, cre, cph],
   Chris Elvidge [ctb] (information + masq function)
 Maintainer: Christopher Njuguna <chris.njuguna@gmail.com>
 Repository: CRAN
-Date/Publication: 2017-08-16 15:50:15 UTC
+Date/Publication: 2017-09-09 17:22:22 UTC

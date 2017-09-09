@@ -143,7 +143,8 @@ downloadNlTilesOLS <- function(nlYear, downloadMethod=pkgOptions("downloadMethod
   #if (!file.exists(ntLtsZipLocalNameVIIRS) && !file.exists(ntLtsTifLocalNameVIIRS))
   if (!file.exists(ntLtsTifLocalNamePath))
   {
-    ntLtsFileUrl <- getNlUrlOLS(nlYear)
+    #get the first only to cater for Where multiple tiles exist 
+    ntLtsFileUrl <- getNlUrlOLS(nlYear)[1]
     
     ntLtsFileUrl <- gsub("\n", "", ntLtsFileUrl)
     
@@ -155,7 +156,8 @@ downloadNlTilesOLS <- function(nlYear, downloadMethod=pkgOptions("downloadMethod
     if (downloadMethod %in% c("auto", "curl", "libcurl", "wget"))
       rsltDnld <- utils::download.file(ntLtsFileUrl, ntLtsZipLocalNamePath, mode = "wb", method = downloadMethod, extra = "-c")
     else if (downloadMethod == "aria")
-      rsltDnld <- system(paste0("aria2c -c -x2 ", ntLtsFileUrl, " -d ", getNlDir("dirNlTiles"), " -o ", ntLtsZipLocalNamePath)) #downloads to path relative to -d if specified else local dir
+      rsltDnld <- system(paste0("aria2c -c -x2 ", ntLtsFileUrl, " -d ", getNlDir("dirNlTiles"), " -o ", getNlTileZipLclNameOLS(nlYear))) #downloads to path relative to -d if specified else local dir
+    
   }
   else
   {

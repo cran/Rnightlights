@@ -44,12 +44,17 @@ if (!requireNamespace("shinydashboard", quietly = TRUE))
 
 if (!requireNamespace("leaflet", quietly = TRUE))
 {
-  missingPkgs <- c(missingPkgs, "leaflet")
+  missingPkgs <- c(missingPkgs, "rstudio/leaflet")
 }
 
 if (!requireNamespace("plotly", quietly = TRUE))
 {
   missingPkgs <- c(missingPkgs, "plotly")
+}
+
+if (!requireNamespace("DT", quietly = TRUE))
+{
+  missingPkgs <- c(missingPkgs, "rstudio/DT")
 }
 
 if(!is.null(missingPkgs))
