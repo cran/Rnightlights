@@ -253,11 +253,7 @@ shiny::shinyServer(function(input, output, session){
       return(ctryData)
     })
 
-  ######################## reactiveValues values ###################################
-  
-    values <- shiny::reactiveValues(
-      lastUpdated = NULL
-    )
+  ######################## renderUI radioStats ###################################
     
     output$radioStats <- shiny::renderUI({
       # if(length(input$countries) != 1)
@@ -275,7 +271,13 @@ shiny::shinyServer(function(input, output, session){
       )
     })
   
+  ######################## reactiveValues values ###################################
+  
+    values <- shiny::reactiveValues(
+      lastUpdated = NULL
+    )
     
+
     ######################## observe lastUpdated ###################################
     
     observe({
@@ -296,8 +298,7 @@ shiny::shinyServer(function(input, output, session){
                      choices = ctryAdmLevels()
                    )
     })
-    
-    
+
     ######################## render UI: intraCountry ###################################
     
     output$intraCountry <- shiny::renderUI({
@@ -555,8 +556,8 @@ shiny::shinyServer(function(input, output, session){
                              label = "Time",
                              min = minDate,
                              max = maxDate,
-                             timeFormat = "%Y-%m-%d",
-                             #step = 31,
+                             timeFormat = "%Y-%m",
+                             step = 31,
                              value = minDate,
                              animate = animationOptions(interval = 10000, loop = FALSE, playButton = "Play", pauseButton = NULL)
           )
@@ -1266,9 +1267,9 @@ shiny::shinyServer(function(input, output, session){
         
       if(inherits(ctryRast, "RasterLayer"))
       {
-        map <- map %>% leaflet::addRasterImage(x = ctryRast,layerId = "ctryRasterLocal", group = "ctryRaster", project = F)
+        map <- map %>% leaflet::addRasterImage(x = ctryRast,layerId = "ctryRasterLocal", group = "ctryRaster", project = T, colors = "Grays")
 
-        #leaflet::projectRasterForLeaflet(ctryRast)
+        leaflet::projectRasterForLeaflet(ctryRast)
       }
               
       map <-  map %>% leaflet::addWMSTiles(layerId="nlRaster",
