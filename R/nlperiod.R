@@ -11,7 +11,7 @@
 #' @return TRUE/FALSE
 #'
 #' @examples
-#' \dontrun{validNlYearNum("2014","VIIRS")}
+#' Rnightlights:::validNlYearNum("2014","VIIRS")
 #'
 validNlYearNum <- function(yearNum, nlType)
 {
@@ -38,7 +38,7 @@ validNlYearNum <- function(yearNum, nlType)
   else
     if (nlType=="VIIRS")
     {
-      if (nlY >= 2014 && nlY <= lubridate::year(lubridate::now()))
+      if (nlY >= 2012 && nlY <= lubridate::year(lubridate::now()))
         return(TRUE)
       else
         return(FALSE)
@@ -61,14 +61,16 @@ validNlYearNum <- function(yearNum, nlType)
 #' @return TRUE/FALSE
 #'
 #' @examples
-#' \dontrun{validNlMonthNum("01","VIIRS")}
+#' Rnightlights:::validNlMonthNum("01","VIIRS")
 #'  #returns TRUE
 #'
-#' \dontrun{validNlMonthNum("13","VIIRS")}
+#' Rnightlights:::validNlMonthNum("13","VIIRS")
 #'  #returns FALSE
 #'
-#' \dontrun{validNlMonthNum("01","OLS")}
-#'  #returns FALSE
+#' \dontrun{
+#' Rnightlights:::validNlMonthNum("01","OLS")
+#' }
+#'  #returns Error since OLS doesn't have months
 #'
 validNlMonthNum <- function(monthNum, nlType="VIIRS")
 {
@@ -103,14 +105,14 @@ validNlMonthNum <- function(monthNum, nlType="VIIRS")
 #' @return TRUE/FALSE
 #'
 #' @examples
-#' \dontrun{validNlPeriodVIIRS("201512")}
+#' Rnightlights:::validNlPeriodVIIRS("201512")
 #'  #returns TRUE
 #'
-#' \dontrun{validNlPeriodVIIRS("201513")}
+#' Rnightlights:::validNlPeriodVIIRS("201513")
 #'  #returns FALSE; invalid month 13
 #'
-#' \dontrun{validNlPeriodVIIRS("201401")}
-#'  #returns FALSE #VIIRS starts in "201401"
+#' Rnightlights:::validNlPeriodVIIRS("201201")
+#'  #returns FALSE #VIIRS starts in "201204"
 #'
 validNlPeriodVIIRS <- function(nlYearMonth)
 {
@@ -127,6 +129,9 @@ validNlPeriodVIIRS <- function(nlYearMonth)
   
   nlY <- as.numeric(substr(nlYearMonth, 1, 4))
   nlM <- as.numeric(substr(nlYearMonth, 5, 6))
+  
+  if (as.numeric(nlY) == 2012 && as.numeric(nlM) < 4) #Special cases. first VIIRS in 201204
+    return(FALSE)
   
   if (validNlYearNum(yearNum = nlY, nlType = "VIIRS") && validNlMonthNum(monthNum = nlM, nlType = "VIIRS"))
     return(TRUE)
@@ -145,13 +150,13 @@ validNlPeriodVIIRS <- function(nlYearMonth)
 #' @return TRUE/FALSE
 #'
 #' @examples
-#' \dontrun{validNlPeriodOLS("2015")}
+#' Rnightlights:::validNlPeriodOLS("2015")
 #'  #returns FALSE
 #'
-#' \dontrun{validNlPeriodOLS("2004")}
+#' Rnightlights:::validNlPeriodOLS("2004")
 #'  #returns TRUE
 #'
-#' \dontrun{validNlPeriodOLS("201201")}
+#' Rnightlights:::validNlPeriodOLS("201201")
 #'  #returns FALSE
 #'
 validNlPeriodOLS <- function(nlYear)
@@ -203,6 +208,9 @@ validNlPeriod <- function(nlPeriod, nlType)
   
   if(!validNlType(nlType))
     stop("Invalid nlType")
+  
+  if(length(nlPeriod) > 1)
+    return(FALSE)
   
   nlPeriod <- as.character(nlPeriod)
   nlType <- as.character(nlType)
@@ -293,7 +301,7 @@ getAllNlPeriods <- function(nlType)
     return (1992:2013)
   else if (nlType == "VIIRS")
   {
-    yrs <- 2014:lubridate::year(lubridate::now())
+    yrs <- 2012:lubridate::year(lubridate::now())
     
     mths <- c(paste("0",1:9, sep= ""),10:12)
     
@@ -301,7 +309,7 @@ getAllNlPeriods <- function(nlType)
     
     nlYrMths <- unlist(lapply(yrs, FUN = function(x) paste(x,mths,sep="")))
     
-    nlYrMths <- nlYrMths[nlYrMths >= "201401" & nlYrMths <= currYrMth]
+    nlYrMths <- nlYrMths[nlYrMths >= "201204" & nlYrMths <= currYrMth]
     
     return (nlYrMths)
   }

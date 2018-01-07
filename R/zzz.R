@@ -25,8 +25,14 @@
 
 .onDetach <- function(libname)
 {
-  #remove any global vars we created in .onLoad
-  #suppressWarnings(rm(map, shpTopLyrName, wgs84, nlTiles, tilesSpPolysDFs))
+  map <- NULL
+  shpTopLyrName <- NULL
+  wgs84 <- NULL
+  nlTiles <- NULL
+  tilesSpPolysDFs <- NULL
+  
+  #remove any global vars we created in .onAttach
+  suppressWarnings(rm(map, shpTopLyrName, wgs84, nlTiles, tilesSpPolysDFs))
   
   #cleanup by removing any global vars created etc
   nlCleanup();

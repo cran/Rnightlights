@@ -9,7 +9,9 @@
 #' @return character string Url of the OLS tile file
 #'
 #' @examples
-#' \dontrun{tileUrl <- getNlUrlOLS("1999")}
+#' \dontrun{
+#' tileUrl <- Rnightlights:::getNlUrlOLS("1999")
+#' }
 #'
 getNlUrlOLS <- function(nlYear)
 {
@@ -24,7 +26,7 @@ getNlUrlOLS <- function(nlYear)
   ntLtsPageHtml <- "https://www.ngdc.noaa.gov/eog/dmsp/downloadV4composites.html"
   
   #the local name of the file once downloaded
-  ntLtsPageLocalName <- file.path(getNlDataPath(), "ntltspageols.html")
+  ntLtsPageLocalName <- file.path(getNlDir("dirNlData"), "ntltspageols.html")
   
   #if the file does not exist or is older than a day download it afresh
   #not working. download.file does not seem to update mtime
@@ -80,7 +82,9 @@ getNlUrlOLS <- function(nlYear)
 #' @return Character string Url of the VIIRS tile file
 #'
 #' @examples
-#' \dontrun{tileUrl <- getNlUrlVIIRS("201401", "1")}
+#' \dontrun{
+#' tileUrl <- Rnightlights:::getNlUrlVIIRS("201401", "1")
+#' }
 #'
 getNlUrlVIIRS <- function(nlYearMonth, tileNum)
 {
@@ -108,7 +112,7 @@ getNlUrlVIIRS <- function(nlYearMonth, tileNum)
   ntLtsIndexUrlVIIRS <- pkgOptions("ntLtsIndexUrlVIIRS")
   
   #the local name of the file once downloaded
-  ntLtsPageLocalName <- file.path(getNlDataPath(),"ntltspageviirs.html")
+  ntLtsPageLocalName <- file.path(getNlDir("dirNlData"),"ntltspageviirs.html")
   
   #if the file does not exist or is older than a week download it afresh
   if (!file.exists(ntLtsPageLocalName) || (lubridate::date(lubridate::now()) - lubridate::date(file.mtime(ntLtsPageLocalName)) > lubridate::as.difftime(lubridate::period("1 day"))) || file.size(ntLtsPageLocalName) == 0)

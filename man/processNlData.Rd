@@ -4,19 +4,18 @@
 \alias{processNlData}
 \title{Downloads nightlight tiles and country polygons and calls the function to process them}
 \usage{
-processNlData(ctryCodes = getAllNlCtryCodes("all"),
-  nlPeriods = getAllNlPeriods(nlType), nlType = "VIIRS",
-  stats = pkgOptions("stats"))
+processNlData(ctryCodes = getAllNlCtryCodes("all"), nlType = "VIIRS",
+  nlPeriods = getAllNlPeriods(nlType), nlStats = pkgOptions("nlStats"))
 }
 \arguments{
 \item{ctryCodes}{the list of countries to be processed}
 
-\item{nlPeriods}{the nlPeriods of interest}
-
 \item{nlType}{the type of nightlights to process i.e. "OLS" or "VIIRS". Default "VIIRS"}
 
-\item{stats}{the statistics to calculate. If not provided will calculate the stats specified 
-in \code{pkgOptions("stats")}}
+\item{nlPeriods}{the nlPeriods of interest}
+
+\item{nlStats}{the statistics to calculate. If not provided will calculate the stats specified 
+in \code{pkgOptions("nlStats")}}
 }
 \value{
 None
@@ -42,29 +41,23 @@ This is the main entry-point to the package and the main user-facing function. H
     spot-priced machine where the server may be decommissioned at any time. See more in the examples.
 }
 \examples{
+
+#long running examples which may require large downloads
 \dontrun{
 #Example 1: process VIIRS nightlights for all countries and all periods available e.g. to create 
     #a local cache or repo
     
-    #Recommend running nlInit() to improve performance. It stores some global variables 
-    #so that they do not have to be re-evaluated multiply
-    nlInit() 
-    
     processNlData() #process VIIRS nightlights for all countries and all periods
 
 #Example 2: process nightlights for all countries in 2012 only
-    
-    nlInit() #for performance. See Example 1
 
-    nlPeriods <- getAllNlYears("VIIRS") #get a list of all nightlight periods to present-day
+    nlPeriods <- getAllNlPeriods("VIIRS") #get a list of all nightlight periods to present-day
 
-    nlPeriods <- nlPeriods[grep("^2012", nlPeriods)] #filter only periods in 2012
+    nlPeriods <- nlPeriods[grep("^2014", nlPeriods)] #filter only periods in 2014
 
     processNlData(nlPeriods=nlPeriods)
 
 #Example 3: process VIIRS nightlights for countries KEN & RWA in 2014 Jan to 2014 May only
-    
-    nlInit()
 
     cCodes <- c("KEN", "RWA")
 
@@ -86,8 +79,6 @@ This is the main entry-point to the package and the main user-facing function. H
 #   year in a separate thread. Create a separate R script for each year as follows:
 
     library(Rnightlights)
-
-    nlInit()
 
     nlPeriods <- getAllNlYears("VIIRS")
 

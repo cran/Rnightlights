@@ -18,14 +18,10 @@ Convert a country name to its ISO3 code. Exposes the rworldmap function
     list of ctryNames and their corresponding codes as given by rworldMap
 }
 \examples{
-ctryNameToCode("kenya")
-  #returns "KEN"
+ctryNameToCode("kenya") #returns "KEN"
 
-ctryNameToCode("ken")
-  #returns "KEN"
+ctryNameToCode("ken") #returns "KEN"
   
 ctryNameToCode("jamaica") #returns JAM
-
-
 
 }

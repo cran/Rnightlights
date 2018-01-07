@@ -14,7 +14,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' if(downloadNlTilesVIIRS("201401", "1"))
+#' if(Rnightlights:::downloadNlTilesVIIRS("201401", "1"))
 #'   print("download successful")
 #'   }
 #'
@@ -84,7 +84,7 @@ downloadNlTilesVIIRS <- function(nlYearMonth, tileNum, downloadMethod=pkgOptions
         return (-1)
       }
       
-      tgzAvgRadFilename <- tgzFileList[grep("svdnb.*.avg_rade9.tif$",tgzFileList, ignore.case = T)]
+      tgzAvgRadFilename <- tgzFileList[grep("svdnb.*.avg_rade9.*.tif$",tgzFileList, ignore.case = T)]
       
       message("Decompressing ", tgzAvgRadFilename, " ", base::date())
       
@@ -120,7 +120,7 @@ downloadNlTilesVIIRS <- function(nlYearMonth, tileNum, downloadMethod=pkgOptions
 #'
 #' @examples
 #' \dontrun{
-#' if(downloadNlTilesOLS("201405"))
+#' if(Rnightlights:::downloadNlTilesOLS("201405"))
 #'   print("download successful")
 #'   }
 #'

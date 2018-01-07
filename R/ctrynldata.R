@@ -10,8 +10,11 @@
 #' @return dataframe with the country admin level data
 #'
 #' @examples
-#' \dontrun{initCtryNlData <- createCtryNlDataDF("KEN")}
+#' \dontrun{
+#' initCtryNlData <- Rnightlights:::createCtryNlDataDF("KEN")
 #'  #returns a data frame
+#' }
+#' 
 #'
 createCtryNlDataDF <- function(ctryCode)
 {
@@ -103,14 +106,19 @@ createCtryNlDataDF <- function(ctryCode)
 #' 
 #' @param nlType the type of nightlight data i.e. "OLS" or "VIIRS"
 #'
-#' @return Character full path to the cropped VIIRS country raster 
-#'     for a country and a given year and month
+#' @return the updated dataframe
 #'
 #' @examples
 #' 
-#' \dontrun{ctryNlDataDF <- insertNlDataCol(ctryNlDataDF, dataCol, "sum", "201409", "VIIRS")}
+#' \dontrun{
+#' ctryNlDataDF <- Rnightlights:::insertNlDataCol(ctryNlDataDF, 
+#'     dataCol, "sum", "201409", "VIIRS")
+#'     }
 #' 
-#' \dontrun{ctryNlDataDF <- insertNlDataCol(ctryNlDataDF, dataCol, "mean", "2012", "OLS")}
+#' \dontrun{
+#' ctryNlDataDF <- Rnightlights:::insertNlDataCol(ctryNlDataDF, 
+#'     dataCol, "mean", "2012", "OLS")
+#'     }
 #'
 insertNlDataCol <- function (ctryNlDataDF, dataCol, statType, nlPeriod, nlType)
 {
@@ -157,6 +165,72 @@ insertNlDataCol <- function (ctryNlDataDF, dataCol, statType, nlPeriod, nlType)
   return(ctryNlDataDF)
 }
 
+######################## deleteNlDataCol ###################################
+
+#' Delete an aggregate nightlight data column in a country nightlights dataframe
+#'
+#' Delete an aggregate nightlight data column in a country nightlights dataframe. The number
+#'     of elements in the vector MUST match the number of rows in the country dataframe.
+#'
+#' @param ctryCode country with the  data column to remove
+#' 
+#' @param nlType  the type of nightlight data i.e. "OLS" or "VIIRS"
+#' 
+#' @param nlPeriod the nlPeriod that the dataCol belongs to
+#' 
+#' @param statType the stat which produced the dataCol vector
+#'
+#' @examples
+#' 
+#' \dontrun{
+#' ctryNlDataDF <- Rnightlights:::deleteNlDataCol(ctryNlDataDF, 
+#'      "VIIRS", "201409", "sum")
+#'      }
+#' 
+#' \dontrun{
+#' Rnightlights:::deleteNlDataCol(ctryNlDataDF, 
+#'     "OLS", "2012", "mean")
+#'     }
+#'
+#' @export
+deleteNlDataCol <- function (ctryCode,nlType, nlPeriod, statType)
+{
+  if(missing(ctryCode))
+    stop("Missing required parameter ctryCode")
+
+  if(missing(nlType))
+    warning("Missing required parameter nlType")
+  
+  if(missing(nlPeriod))
+    stop("Missing required parameter nlPeriod")
+  
+  if(missing(statType))
+    stop("Missing required parameter statType")
+  
+  ctryNlDataDF <- getCtryNlData(ctryCode = ctryCode, 
+                                nlType = nlType,
+                                nlPeriods = getAllNlPeriods(nlType), 
+                                ignoreMissing = TRUE)
+  
+  #read in all column names in the dataframe
+  cols <- names(ctryNlDataDF)
+  
+  colName <- paste0("NL", nlType, toupper(statType), collapse = "_")
+  
+  #get only the named nightlight data column(s)
+  nlDataColIdx <- grep(colName, cols)
+  
+  if(length(nlDataColIdx) == 0)
+    stop("Specified column not found")
+  
+  #write back the dataframe with the new column order
+  ctryNlDataDF <- ctryNlDataDF[ , -c(nlDataColIdx)]
+  
+  saveCtryNlData(ctryNlDataDF, ctryCode)
+  
+  return(TRUE)
+}
+
 ######################## saveCtryNlData ###################################
 
 #' Save a data frame of a country's data to the appropriate location
@@ -173,7 +247,9 @@ insertNlDataCol <- function (ctryNlDataDF, dataCol, statType, nlPeriod, nlType)
 #'
 #' @examples
 #' 
-#' \dontrun{saveCtryNlData(ctryNlDataDF, ctryCode)}
+#' \dontrun{
+#' Rnightlights:::saveCtryNlData(ctryNlDataDF, ctryCode)
+#' }
 #'
 saveCtryNlData <- function(ctryNlDataDF, ctryCode)
 {
@@ -203,8 +279,10 @@ saveCtryNlData <- function(ctryNlDataDF, ctryCode)
 #' @return TRUE/FALSE
 #'
 #' @examples
-#' \dontrun{validCtryNlDataDF(nlCtryDataDF)}
-#'  #returns TRUE
+#' \dontrun{
+#'   Rnightlights:::validCtryNlDataDF(nlCtryDataDF) #returns TRUE
+#' }
+#'  
 #'
 validCtryNlDataDF <- function(ctryNlDataDF)
 {
@@ -219,9 +297,9 @@ validCtryNlDataDF <- function(ctryNlDataDF)
 
 ######################## getCtryNlDataFname ###################################
 
-#' Check if a month number is valid for a given nightlight type
+#' Construct the name of the country data file.
 #'
-#' Get the name of the data file. This function can be altered to name the file as 
+#' Construct the name of the data file. This function can be altered to name the file as 
 #'     required and consistently retrieve the name. Used in the function getCtryNlDataFnamePath 
 #'     to concat the directory path and this filename. Currently all nlTypes are stored in one 
 #'     file. Can be altered to separate VIIRS and OLS data files for example.
@@ -232,8 +310,8 @@ validCtryNlDataDF <- function(ctryNlDataDF)
 #'
 #' @examples
 #' ctryCode <- "KEN"
-#' \dontrun{getCtryNlDataFname(ctryCode)}
-#'  #returns name of the ctry data file
+#' Rnightlights:::getCtryNlDataFname(ctryCode)
+#' #returns string of name of the ctry data file
 #'
 getCtryNlDataFname <- function(ctryCode)
 {
@@ -248,9 +326,10 @@ getCtryNlDataFname <- function(ctryCode)
 
 ######################## getCtryNlDataFnamePath ###################################
 
-#' Get the full path to the file containing the country data
+#' Construct the full path to save the file containing the country data
 #'
-#' Get the full path to the file containing the country data
+#' Construct the full path to save the file containing the country data. Note
+#'     it does not indicate if the file exists
 #' 
 #' @param ctryCode character string The ctryCode of interest
 #'
@@ -260,10 +339,8 @@ getCtryNlDataFname <- function(ctryCode)
 #' #get the full path to the file containing data for KEN
 #' getCtryNlDataFnamePath("KEN")
 #' 
-#' \dontrun{
-#' ctryDF <- read.csv(getCtryNlDataFnamePath("KEN"))
-#'  #returns DF with nightlight data for the country
-#'  }
+#' Rnightlights:::getCtryNlDataFnamePath("KEN")
+#'  #returns full path of the nightlight data file for the country
 #'
 #' #@export only due to exploreData() shiny app
 #' @export
@@ -282,18 +359,18 @@ getCtryNlDataFnamePath <- function(ctryCode)
 
 #' Returns nightlight statistics for the given ctryCode and nlType in the given nPeriods
 #'
-#' Returns nightlight data for the given ctryCode and stats in the given 
+#' Returns nightlight data for the given ctryCode and nlStats in the given 
 #'     nlPeriods and of the specified nlType. Note that getCtryNldata only
 #'     processes one ctryCode at a time.
 #'     \code{ignoreMissing} plays a significant role here. It can take 3 values:
 #'     
 #'     \itemize{
 #'         \item NULL (default) only return data if found for all nlPeriods
-#'            and all stats provided otherwise return NULL.
+#'            and all nlStats provided otherwise return NULL.
 #'         \item TRUE return any partial data that is found for the provided 
-#'            nlPeriods and stats. Ignore any missing data.
+#'            nlPeriods and nlStats. Ignore any missing data.
 #'         \item FALSE return all data that is found and call \code{processNlData}
-#'            to download and process any missing nlPeriods and stats.
+#'            to download and process any missing nlPeriods and nlStats.
 #'     }
 #'    
 #'    Farther, if \code{nlPeriods} is missing, it is assigned values based on
@@ -308,8 +385,8 @@ getCtryNlDataFnamePath <- function(ctryCode)
 #' @param nlPeriods a vector of nlPeriods. Must be appropriate nlPeriods
 #'     for the nlType.
 #' 
-#' @param stats a vector of stats. if not supplied defaults to all stats
-#'     as listed in pkgOptions("stats")
+#' @param nlStats a vector of stats. if not supplied defaults to all stats
+#'     as listed in pkgOptions("nlStats")
 #' 
 #' @param nlType the nightlight type i.e. "OLS" or "VIIRS" (default)
 #' 
@@ -333,38 +410,52 @@ getCtryNlDataFnamePath <- function(ctryCode)
 #'     nlPeriods
 #'
 #' @examples
-#' #missing stats implies all stats as given by pkgOptions("stats")
+#' #missing stats implies all stats as given by pkgOptions("nlStats")
 #' 
-#' \dontrun{getCtryNlData("KEN", nlType="VIIRS", ignoreMissing=NULL)}
-#'     #returns all existing data i.e. all nlPeriods and all stats for KEN
+#' #long running examples which also require large downloads
+#' \dontrun{
+#' getCtryNlData("KEN", nlType="VIIRS", ignoreMissing=NULL)
+#'     #returns either all requested data if it exists i.e. all nlPeriods
+#'     #and all nlStats for KEN otherwise NULL
+#' }
 #'
-#' \dontrun{getCtryNlData("KEN", ignoreMissing=TRUE)}
-#'     #same as ignoreMissing=NULL. Returns all existing data i.e. all nlPeriods
-#'     #and all stats for KEN
+#' \dontrun{
+#' getCtryNlData("KEN", nlType="VIIRS", ignoreMissing=TRUE)
+#'     #Returns all requested data if it exists i.e. all nlPeriods and all
+#'     #nlStats for KEN but omits any missing data
+#'     }
 #'  
-#' \dontrun{getCtryNlData(ctryCode="KEN", nlType="VIIRS", ignoreMissing=FALSE)}
-#'     #for any missing data between 201401 to present download and process the
-#'     #data then return all data
+#' \dontrun{
+#' getCtryNlData(ctryCode="KEN", nlType="VIIRS", ignoreMissing=FALSE)
+#'     #Returns all requested data i.e. all nlPeriods and all
+#'     #nlStats for KEN. All missing data will be downloaded and processed
+#'     }
 #'  
-#' \dontrun{getCtryNlData("KEN", nlPeriod=c("existingNlPeriod", "missingNlPeriod"),
-#'     stats=c("sum", "unknownStat"), ignoreMissing=NULL)}
-#'     #Returns NULL
+#' \dontrun{
+#' getCtryNlData("KEN", nlPeriod=c("existingNlPeriod", "missingNlPeriod"),
+#'     nlStats=c("sum", "unknownStat"), ignoreMissing=NULL)
+#'     #Returns NULL due to missingNlPeriod and unknownStat not already existing
 #'     #(ignoreMissing=NULL returns all data if exists or if any is missing returns NULL)
+#'     }
 #'
-#' \dontrun{getCtryNlData("KEN", nlPeriods=c("existingNlPeriod", "missingNlPeriod"),
-#'     stats=c("existingStat", "missingStat"), ignoreMissing=TRUE)}
-#'    #Returns existingStat for existingNlPeriods
+#' \dontrun{
+#' getCtryNlData("KEN", nlPeriods=c("existingNlPeriod", "missingNlPeriod"),
+#'     nlStats=c("existingStat", "missingStat"), ignoreMissing=TRUE)
+#'    #Returns existingStat for existingNlPeriods omits missingNlPeriod and missingStat
 #'    #(ignoreMissing=TRUE returns only existing data)
+#'    }
 #'  
-#' \dontrun{getCtryNlData("KEN", nlYearPeriods=c("existingNlPeriod", "missingNlPeriod"),
-#'     stats=c("sum", "unknownStat"), ignoreMissing=FALSE)}
+#' \dontrun{
+#' getCtryNlData("KEN", nlYearPeriods=c("existingNlPeriod", "missingNlPeriod"),
+#'     nlStats=c("sum", "unknownStat"), ignoreMissing=FALSE)
 #'     #Runs processNlData for missingStat in "missingNlPeriod" and returns
 #'     #"existingStat" and "missingStat" for both "existingNlPeriod" and
 #'     #"missingNlPeriod"
 #'     #(ignoreMissing=FALSE must return all data: forces processing of any missing)
+#'     }
 #'  
 #' @export
-getCtryNlData <- function(ctryCode, nlPeriods, nlType, stats=pkgOptions("stats"), ignoreMissing=NULL, source="local")
+getCtryNlData <- function(ctryCode, nlType, nlPeriods, nlStats=pkgOptions("nlStats"), ignoreMissing=NULL, source="local")
 {
   if(source != "local")
     stop("Non-local sources not currently supported. \n
@@ -405,12 +496,12 @@ getCtryNlData <- function(ctryCode, nlPeriods, nlType, stats=pkgOptions("stats")
     
   if(!is.null(ignoreMissing))
     if(ignoreMissing && !existsCtryNlDataFile(ctryCode))
-      stop("No data exists for ", ctryCode, ". Set IgnoreMissing= to download and process")
+      stop("No data exists for ", ctryCode, ". Set IgnoreMissing=FALSE to download and process")
   
   if (!missing(nlPeriods)) #if nlPeriods is provided process else return all ctry data
   {
     #check if the stats exist in the given year months will test nlYm1+stat1, nlYm2+stat1, ..., nlYm1+stat2, nlYm2+stat2
-    nlPeriodStats <- expand.grid(nlPeriods, stats)
+    nlPeriodStats <- expand.grid(nlPeriods, nlStats)
     
     existnlPeriodStats <- apply(nlPeriodStats, 1, function(x) existsCtryNlData(ctryCode, x[1], x[2], nlType))
     
@@ -428,12 +519,12 @@ getCtryNlData <- function(ctryCode, nlPeriods, nlType, stats=pkgOptions("stats")
       }
       else if(!ignoreMissing)
       {
-        message(paste0("Processing missing data: ", ctryCode, " in ", missingData, 
+        message(paste0("Processing missing data: ", ctryCode, ":", missingData, 
                 ". This may take a while. \nNote: Set 'ignoreMissing=TRUE' to ",
                 "return only data found or \n'ignoreMissing=NULL' to return NULL ",
                 "if not all the data is found"))
         
-        processNlData(ctryCode, nlType = nlType, nlPeriods, stats = stats)
+        processNlData(ctryCode, nlType = nlType, nlPeriods, nlStats = nlStats)
       }
       else if (ignoreMissing)
       {
@@ -485,7 +576,11 @@ getCtryNlData <- function(ctryCode, nlPeriods, nlType, stats=pkgOptions("stats")
     
     #if they all exist get the list of column names
     if(all(existnlPeriodStats))
+    {
       existingCols <- apply(nlPeriodStats[existnlPeriodStats,], 1, function(x) getCtryNlDataColName(x[1], x[2], nlType))
+      
+      message("All stats exist")
+    }
     else #else processNlData was unsuccessful i.e. an error occurred
       stop("An error occurred")
   }
@@ -537,12 +632,10 @@ getCtryNlData <- function(ctryCode, nlPeriods, nlType, stats=pkgOptions("stats")
 #' @return character string
 #'
 #' @examples
-#' \dontrun{
-#' ctryCode <- "KEN"
-#' dt <- read.csv(getCtryNlDataFnamePath(ctryCode))
-#' dt <- dt[,getCtryNlDataColName("201612", "sum", nlType="VIIRS")]
-#'   #returns the column "NL_201612_SUM" if it exists in the KEN data file
-#'   }
+#' 
+#' Rnightlights:::getCtryNlDataColName("201612", "sum", nlType="VIIRS")
+#'   #returns the character string "NL_VIIRS_201612_SUM"
+#'   
 getCtryNlDataColName <- function(nlPeriod, stat, nlType)
 {
   if(missing(nlPeriod))
@@ -585,11 +678,10 @@ getCtryNlDataColName <- function(nlPeriod, stat, nlType)
 #' @return TRUE/FALSE
 #'
 #' @examples
-#' \dontrun{
 #' ctryCode <- "KEN"
-#' if(existsCtryNlDataFile(ctryCode))
-#'  message("Data file for ", ctryCode, " found")
-#'  }
+#' message("Data file for ", ctryCode, 
+#'     ifelse(Rnightlights:::existsCtryNlDataFile(ctryCode), 
+#'         " FOUND", " NOT FOUND"))
 #'
 existsCtryNlDataFile <- function(ctryCode)
 {
@@ -622,7 +714,7 @@ existsCtryNlDataFile <- function(ctryCode)
 #' @return TRUE/FALSE
 #'
 #' @examples
-#' \dontrun{existsCtryNlData("KEN", "201401", "sum", "VIIRS")}
+#' Rnightlights:::existsCtryNlData("KEN", "201401", "sum", "VIIRS")
 #'
 existsCtryNlData <- function(ctryCode, nlPeriod, stat, nlType)
 {
@@ -654,7 +746,7 @@ existsCtryNlData <- function(ctryCode, nlPeriod, stat, nlType)
   
   hd <- names(dt)
   
-  if (length(grep(getCtryNlDataColName(nlPeriod, stat = stat, nlType), hd)) > 0)
+  if (length(grep(getCtryNlDataColName(nlPeriod = nlPeriod, stat = stat, nlType = nlType), hd, ignore.case = TRUE)) > 0)
     return(TRUE)
   else
     return(FALSE)
@@ -700,7 +792,7 @@ listCtryNlData <- function(ctryCodes=NULL, nlPeriods=NULL, nlTypes=NULL, source=
   nlPeriod <- NULL #appease CRAN note for global variables
   
   #get a list of country data files present
-  countries <- list.files(getNlDir("dirNlData"))
+  countries <- list.files(getNlDir("dirNlData"), pattern = ".csv$")
   
   #for each country filename
   for (ctry in countries)
@@ -736,8 +828,11 @@ listCtryNlData <- function(ctryCodes=NULL, nlPeriods=NULL, nlTypes=NULL, source=
   dataList <- as.data.frame(dataList, row.names = 1:nrow(dataList))
   
   #label the columns
-  names(dataList) <- c("ctryCode", "dataType", "nlType", "nlPeriod", "stats")
-  
+  names(dataList) <- c("ctryCode", "dataType", "nlType", "nlPeriod", "nlStats")
+
+  dataList$ctryCode <- as.character(dataList$ctryCode)
+  dataList$nlPeriod <- as.character(dataList$nlPeriod)
+    
   #filters
   #filter by ctryCode if supplied
   if(!is.null(ctryCodes))

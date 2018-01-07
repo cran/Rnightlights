@@ -16,7 +16,9 @@ TRUE/FALSE
 Check if a country dataframe is valid
 }
 \examples{
-\dontrun{validCtryNlDataDF(nlCtryDataDF)}
- #returns TRUE
+\dontrun{
+  Rnightlights:::validCtryNlDataDF(nlCtryDataDF) #returns TRUE
+}
+ 
 
 }

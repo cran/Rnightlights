@@ -63,11 +63,13 @@ if(!is.null(missingPkgs))
 
 #library(Rnightlights)
 
-filenames <- list.files(file.path(Rnightlights::getNlDir("dirNlData")))
+#filenames <- list.files(file.path(Rnightlights::getNlDir("dirNlData")))
 
 #print(file.path(Rnightlights::getNlDir("dirNlData")))
 
-ctryCodesWithData <- substr(filenames, 1, 3)
+#ctryCodesWithData <- substr(filenames, 1, 3)
+
+ctryCodesWithData <- Rnightlights::listCtryNlData()$ctryCode
 
 ctryCodeNames <- lapply(ctryCodesWithData, function(x) Rnightlights::ctryCodeToName(x))
 
@@ -90,28 +92,23 @@ alignCenter <- function(el) {
     shinydashboard::dashboardSidebar(
       shinydashboard::sidebarMenu(
       
-        shinydashboard::menuItem("inputs", selected = TRUE,
+        #shinydashboard::menuItem("inputs", selected = TRUE,
                  
                  shiny::selectizeInput(inputId = "countries",
                                 label = "Select Country(ies)",
                                 choices = ctryCodesWithData,
                                 multiple = TRUE
                  ),
+
+                 shiny::actionButton("btnGo", "LOAD"),                 
+
+                 shiny::uiOutput("nlType"),
                  
-                 shiny::radioButtons(inputId = "nltype", 
-                                     label = "NL Type",
-                                     choices = c("OLS","VIIRS"),
-                                     selected = "OLS",
-                                     inline = T
-                                      ),
-                 
-                 shiny::uiOutput("radioStats"),
+                 shiny::uiOutput("ctryStats"),
                  
                  shiny::uiOutput(outputId = "intraCountry"),
                  
                  shiny::uiOutput("intraCountry1"),
-
-                 shiny::actionButton("btnGo", "Go"),
 
 #                 actionButton("btnIntraCtry", "Done"),
                  
@@ -129,30 +126,30 @@ alignCenter <- function(el) {
                                         choices = c("norm_area", "scale_x_log", "scale_y_log")
                           )
                 )
-        ),
+        )#,
         
-        shinydashboard::menuItem("plots", tabName = "plots"),
-        
-        shinydashboard::menuItem("maps", tabName = "maps"),
-        
-        shinydashboard::menuItem("stats", tabName = "stats"),
-        
-        shinydashboard::menuItem("models", tabName = "models"),
-        
-        shinydashboard::menuItem("data", tabName = "data")
-        )
+        # shinydashboard::menuItem("plots", tabName = "plots"),
+        # 
+        # shinydashboard::menuItem("maps", tabName = "maps"),
+        # 
+        # shinydashboard::menuItem("stats", tabName = "stats"),
+        # 
+        # shinydashboard::menuItem("models", tabName = "models"),
+        # 
+        # shinydashboard::menuItem("data", tabName = "data")
+        #)
       ),
 
       # body
       shinydashboard::dashboardBody(
-        shinydashboard::tabItems(
-          shinydashboard::tabItem(tabName = "plots",
+        shinydashboard::tabBox(width = 12,
+          shiny::tabPanel(title = "plots",
                    plotly::plotlyOutput(outputId = "plotNightLights"),
                    
                    shiny::uiOutput("sliderNlYearMonthRange")
                    ),
 
-          shinydashboard::tabItem(tabName = "maps",
+          shiny::tabPanel(title = "maps",
                   tags$style(type = "text/css", "#map {height: calc(100vh - 80px) !important;}"),
                   leaflet::leafletOutput("map"),
                   
@@ -162,7 +159,7 @@ alignCenter <- function(el) {
 #                                label = "Draw Map")
                   ),
 
-          shinydashboard::tabItem(tabName = "stats",
+          shiny::tabPanel(title = "stats",
                    shiny::fluidRow(
                      shinydashboard::box(title = "Annual Trends", 
                          plotly::plotlyOutput("plotYearly")),
@@ -192,11 +189,11 @@ alignCenter <- function(el) {
                   )
                 ),
           
-          shinydashboard::tabItem(tabName = "models",
+          shiny::tabPanel(title = "models",
                    shiny::textOutput("Models")
                    ),
           
-          shinydashboard::tabItem(tabName = "data",
+          shiny::tabPanel(title = "data",
                   DT::dataTableOutput("dataset")
                    )
         )

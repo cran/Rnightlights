@@ -4,17 +4,17 @@
 \alias{processNLCountry}
 \title{Processes nightlights for an individual country in a particular nlPeriod}
 \usage{
-processNLCountry(ctryCode, nlPeriod, nlType,
+processNLCountry(ctryCode, nlType, nlPeriod,
   cropMaskMethod = pkgOptions("cropMaskMethod"),
   extractMethod = pkgOptions("extractMethod"),
-  fnStats = pkgOptions("stats"))
+  nlStats = pkgOptions("nlStats"))
 }
 \arguments{
 \item{ctryCode}{character string The ctryCode of interest}
 
-\item{nlPeriod}{character string The nlPeriod of interest}
-
 \item{nlType}{character string The nlType of interest}
+
+\item{nlPeriod}{character string The nlPeriod of interest}
 
 \item{cropMaskMethod}{("rast" or "gdal") Whether to use rasterize or gdal-based functions to 
 crop and mask the country rasters}
@@ -22,8 +22,8 @@ crop and mask the country rasters}
 \item{extractMethod}{("rast" or "gdal") Whether to use rasterize or gdal-based functions 
 to crop and mask the country rasters}
 
-\item{fnStats}{the statistics to calculate. If not provided will calculate the stats specified 
-in \code{pkgOptions("stats")}}
+\item{nlStats}{the statistics to calculate. If not provided will calculate the stats specified 
+in \code{pkgOptions("nlStats")}}
 }
 \value{
 None
@@ -58,6 +58,8 @@ NOTE: \code{processNLCountry()} assumes that all inputs are available and will n
 
 #calculate only the sum of VIIRS radiances for Dec 2014 using gdal
 #for both cropMask and extraction for KEN
-\dontrun{processNLCountry("KEN", "201412", "VIIRS", "gdal", "gdal", "sum")}
+\dontrun{
+Rnightlights:::processNLCountry("KEN", "VIIRS", "201412", "gdal", "gdal", "sum")
+}
 
 }
