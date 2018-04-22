@@ -2,25 +2,26 @@
 % Please edit documentation in R/tiles.R
 \name{validNlTileNumVIIRS}
 \alias{validNlTileNumVIIRS}
-\title{Check if a tile index number is valid for a given nightlight type}
+\title{Check valid tile number for a given VIIRS nightlight type}
 \usage{
-validNlTileNumVIIRS(nlTileNum)
+validNlTileNumVIIRS(nlTileNum, nlType)
 }
 \arguments{
 \item{nlTileNum}{the index of the tile}
+
+\item{nlType}{A character string of nlType}
 }
 \value{
 TRUE/FALSE
 }
 \description{
-Check if a tile number is valid for a given nightlight type. Note tile num is only valid for
-"VIIRS" nightlight type
+Check if a tile number is valid for a given VIIRS nightlight type.
 }
 \examples{
-Rnightlights:::validNlTileNumVIIRS("1")
+Rnightlights:::validNlTileNumVIIRS("1", "VIIRS.M")
  #returns TRUE
 
-Rnightlights:::validNlTileNumVIIRS("9")
+Rnightlights:::validNlTileNumVIIRS("9", "VIIRS.D")
  #returns FALSE
 
 }

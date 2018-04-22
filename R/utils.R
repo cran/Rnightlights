@@ -19,95 +19,23 @@
 #' @examples
 #' 
 #' \donttest{
-#' Rnightlights:::allValid(c("KEZ", "UGA", "RWA", "TZA"), Rnightlights:::validCtryCode)
+#' Rnightlights:::allValid(c("KEZ", "UGA", "RWA", "TZA"), Rnightlights:::validCtryCodes)
 #' }
 #'  
 #' \donttest{
-#' Rnightlights:::allValid(c("2012", "2015"), validNlPeriod, "OLS")
+#' Rnightlights:::allValid(c("2012", "2015"), validNlPeriods, "OLS.Y")
 #' }
 #'
 allValid <- function(testData, testFun, ...)
 {
-  valid <- sapply(testData, function(x) eval(parse(text="testFun(x, ...)")))
+  valid <- unlist(sapply(testData, function(x) eval(parse(text="testFun(x, ...)"))))
   
   invalidData <- testData[!valid]
   
   if(length(invalidData) > 0)
-    warning("Invalid data: ", paste0(invalidData, collapse = ", "))
+    message("Invalid data: ", paste0(invalidData, collapse = ", "))
   
   return(all(valid))
-}
-
-######################## dnldCtryPoly ###################################
-
-#' Download a country's polygon shapefile from \url{http://gadm.org}
-#'
-#' Download a country's polygon shapefile from \url{http://gadm.org}
-#' 
-#' @param ctryCode The ISO3 ctryCode of the country polygon to download
-#'
-#' @return TRUE/FALSE Success/Failure of the download
-#'
-#' @examples
-#' \donttest{
-#' Rnightlights:::dnldCtryPoly("KEN")
-#' }
-#'
-dnldCtryPoly <- function(ctryCode)
-{
-  if(missing(ctryCode))
-    stop("Missing required parameter ctryCode")
-  
-  if(!validCtryCode(ctryCode))
-    stop("Invalid ctryCode: ", ctryCode)
-  
-  fullPolyUrl <- getCtryPolyUrl(ctryCode)
-  
-  result <- NULL
-  
-  #if the path doesn't exist
-  if (!existsPolyFnamePath(ctryCode))
-  {
-    if (!existsPolyFnameZip(ctryCode))
-    {
-      if(utils::download.file(url = getCtryPolyUrl(ctryCode), destfile = getPolyFnameZip(ctryCode), method = "auto", mode = "wb", extra = "-c") == 0)
-      {
-        #unzip does not like double slashes!
-        
-        polyFnameZip <- getPolyFnameZip(ctryCode)
-        polyFnameZip <- gsub("//", "/", polyFnameZip, perl=TRUE)
-        polyFnameZip <- gsub("\\\\\\\\", "\\\\", polyFnameZip, perl=TRUE)
-        
-        polyFnamePath <- getPolyFnamePath(ctryCode)
-        polyFnamePath <- gsub("//", "/", polyFnamePath, perl=TRUE)
-        polyFnamePath <- gsub("\\\\\\\\", "\\\\", polyFnamePath, perl=TRUE)
-        
-        result <- utils::unzip(polyFnameZip, exdir = polyFnamePath)
-        file.remove(getPolyFnameZip(ctryCode))
-      }
-    }else
-    {
-      #unzip does not like double slashes!
-      
-      #Convert double forward slashes to single
-      polyFnameZip <- getPolyFnameZip(ctryCode)
-      polyFnameZip <- gsub("//", "/", polyFnameZip, perl=TRUE) #forward
-      polyFnameZip <- gsub("\\\\\\\\", "\\\\", polyFnameZip, perl=TRUE) #back
-      
-      polyFnamePath <- getPolyFnamePath(ctryCode)
-      polyFnamePath <- gsub("//", "/", polyFnamePath, perl=TRUE)
-      polyFnamePath <- gsub("\\\\\\\\", "\\\\", polyFnamePath, perl=TRUE)
-      
-      result <- utils::unzip(polyFnameZip, exdir = polyFnamePath)
-      file.remove(getPolyFnameZip(ctryCode))
-    }
-  }
-  else
-  {
-    message("Polygon ", ctryCode, " already exists")
-  }
-  
-  return (!is.null(result))
 }
 
 ######################## nlInit ###################################
@@ -151,35 +79,17 @@ nlCleanup <- function()
   
   #the destructor
   
+  #del temp files used in this session in the nlTempDir
+  unlink(list.files(getNlDir("dirNlTemp")), recursive = T, force = T)
+  
   #del temp dataPath directory if it was created
   #if(getNlDataPath() == tempdir())
   #  unlink(file.path(tempdir(), ".Rnightlights"), recursive = TRUE, force = TRUE)
 }
 
-######################## getRastPercentiles ###################################
-
-getRastPercentiles <- function(rastFilename)
+myquantile <- function(rast)
 {
-  rastInfo <- gdalUtils::gdalinfo(rastFilename, hist=T)
-  rastMinMax <- unlist(strsplit(gsub("[^[:digit:].-]", " ", rastInfo[30]), " "))
-  rastMinMax <- as.numeric(rastMinMax[which(rastMinMax!="")])
   
-  rastSeq <- seq(rastMinMax[2],rastMinMax[3],length.out = rastMinMax[1])
-  
-  rastHist <- as.numeric(unlist(strsplit(rastInfo[31]," ")))
-  rastHist <- rastHist[!is.na(rastHist)]
-  
-  rastCumSum <- cumsum(rastHist)
-  rastCumProbs <- rastCumSum/data.table::last(rastCumSum)
-  
-  q2 <- data.table::last(rastSeq[rastCumProbs<0.2])
-  q3 <- data.table::first(rastSeq[rastCumProbs>0.2])
-  hist1 <- rastHist[]
-  
-  q98 <- data.table::last(rastSeq[rastCumProbs<0.98])
-  q99 <- data.table::first(rastSeq[rastCumProbs>0.98])
-  
-  return (c(q2,q98))
 }
 
 ######################## writeNightlightsMap ###################################
@@ -417,31 +327,4 @@ writeNightlightsMap <- function()
   tplMap <- paste0(tplMap, "\n", tplLayers, "\nEND #END MAP")
   
   readr::write_file(tplMap, "test.map")
-}
-
-######################## myquantile ###################################
-
-myquantile <- function (x)
-{
-  #http://www.guru-gis.net/efficient-zonal-statistics-using-r-and-gdal/
-  vals <- NULL
-  
-  zones <- NULL
-  
-  blocks <- raster::blockSize(x)
-  
-  result <- NULL
-  
-  for (i in 1:blocks$n)
-  {
-    vals <- raster::getValues(x, blocks$row[i], blocks$nrows[i])
-    
-    result <- rbind(result, stats::quantile(vals, c(0.02,0.98),na.rm=T))
-  }
-  
-  result <- colMeans(result, na.rm = T)
-  
-  gc()
-  
-  return(result)
 }

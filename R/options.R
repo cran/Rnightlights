@@ -10,7 +10,7 @@ RNIGHTLIGHTSOPTIONS <- settings::options_manager(
   #Set directory paths
   dirNlData = "data",
   
-  dirNlDataPath = ".Rnightlights",
+  dirNlRoot = ".Rnightlights",
   
   dirNlTiles = "tiles",
   
@@ -41,7 +41,11 @@ RNIGHTLIGHTSOPTIONS <- settings::options_manager(
   #url if it is changed while the package is being updated
   ntLtsIndexUrlOLS = "https://www.ngdc.noaa.gov/eog/data/web_data/v4composites/",
   
-  ntLtsIndexUrlVIIRS = "https://www.ngdc.noaa.gov/eog/viirs/download_dnb_composites_iframe.html",
+  ntLtsIndexUrlVIIRS.D = "https://ngdc.noaa.gov/eog/viirs/download_ut_mos_tile_iframe.html",
+  
+  ntLtsIndexUrlVIIRS.M = "https://www.ngdc.noaa.gov/eog/viirs/download_dnb_composites_iframe.html",
+  
+  ntLtsIndexUrlVIIRS.Y = "https://www.ngdc.noaa.gov/eog/viirs/download_dnb_composites_iframe.html",
 
   numCores = 2,
   
@@ -76,7 +80,7 @@ RNIGHTLIGHTSOPTIONS <- settings::options_manager(
 #'      after processing may be useful where diskspace is a concern }
 #'  \item{\code{dirNlData}}{(\code{character}) The directory to store 
 #'      the extracted data files in }
-#'  \item{\code{dirNlDataPath}}{\code{character}) The root directory 
+#'  \item{\code{dirNlRoot}}{\code{character}) The root directory 
 #'      storing the package data}
 #'  \item{\code{dirNlTiles}}{(\code{character}) The directory in which 
 #'      to store the downloaded VIIRS raster tiles }

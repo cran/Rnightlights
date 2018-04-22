@@ -17,7 +17,7 @@
 # 
 # suppressMessages(library(leaflet))
 # 
- suppressMessages(library(plotly))
+ suppressMessages(library(plotly)) #some functions don't work unless library is imported
 # 
 # suppressMessages(library(aws.s3))
 
@@ -54,7 +54,7 @@ if (!requireNamespace("plotly", quietly = TRUE))
 
 if (!requireNamespace("DT", quietly = TRUE))
 {
-  missingPkgs <- c(missingPkgs, "rstudio/DT")
+  missingPkgs <- c(missingPkgs, "DT")
 }
 
 if(!is.null(missingPkgs))
@@ -69,7 +69,7 @@ if(!is.null(missingPkgs))
 
 #ctryCodesWithData <- substr(filenames, 1, 3)
 
-ctryCodesWithData <- Rnightlights::listCtryNlData()$ctryCode
+ctryCodesWithData <- unique(Rnightlights::listCtryNlData()$ctryCode)
 
 ctryCodeNames <- lapply(ctryCodesWithData, function(x) Rnightlights::ctryCodeToName(x))
 
@@ -92,7 +92,7 @@ alignCenter <- function(el) {
     shinydashboard::dashboardSidebar(
       shinydashboard::sidebarMenu(
       
-        #shinydashboard::menuItem("inputs", selected = TRUE,
+        shinydashboard::menuItem("Inputs", selected = TRUE, startExpanded = TRUE, tabName = "inputs",
                  
                  shiny::selectizeInput(inputId = "countries",
                                 label = "Select Country(ies)",
@@ -100,20 +100,31 @@ alignCenter <- function(el) {
                                 multiple = TRUE
                  ),
 
+                 tags$head(
+                   tags$style(HTML('#btnGo{background-color:lightblue}'))
+                 ),
+                 
                  shiny::actionButton("btnGo", "LOAD"),                 
 
-                 shiny::uiOutput("nlType"),
-                 
-                 shiny::uiOutput("ctryStats"),
-                 
                  shiny::uiOutput(outputId = "intraCountry"),
                  
-                 shiny::uiOutput("intraCountry1"),
+                 shiny::uiOutput("intraCountry1")
+                 ),
 
-#                 actionButton("btnIntraCtry", "Done"),
-                 
-                 shinydashboard::menuItem(text = "options", tabName = "plots",
+        shinydashboard::menuItem("Stats", selected = TRUE, startExpanded = TRUE, tabName = "stats",
+                                 shiny::uiOutput("nlType"),
+                                 
+                                 shiny::uiOutput("ctryStats"),
+                                 
+                                 shiny::checkboxInput(inputId = "norm_area",
+                                                           label = "norm_area",
+                                                           value = FALSE
+                                 )
+        ),
 
+                 shinydashboard::menuItem(text = "Options", tabName = "options",
+
+                          shiny::checkboxInput(inputId = "strict", label = "Strict", value = T),                                          
                           shiny::radioButtons(inputId = "graphType",
                                        label = "Graph type",
                                        choices = c("line", "boxplot", "histogram", "point"),
@@ -123,7 +134,7 @@ alignCenter <- function(el) {
                           
                           shiny::checkboxGroupInput(inputId = "scale",
                                         label = "Scale",
-                                        choices = c("norm_area", "scale_x_log", "scale_y_log")
+                                        choices = c("scale_x_log", "scale_y_log")
                           )
                 )
         )#,
@@ -144,16 +155,16 @@ alignCenter <- function(el) {
       shinydashboard::dashboardBody(
         shinydashboard::tabBox(width = 12,
           shiny::tabPanel(title = "plots",
-                   plotly::plotlyOutput(outputId = "plotNightLights"),
+                   shiny::plotOutput(outputId = "plotNightLights"),
                    
-                   shiny::uiOutput("sliderNlYearMonthRange")
+                   shiny::uiOutput("sliderNlPeriodRange")
                    ),
 
           shiny::tabPanel(title = "maps",
                   tags$style(type = "text/css", "#map {height: calc(100vh - 80px) !important;}"),
                   leaflet::leafletOutput("map"),
                   
-                  shiny::uiOutput("sliderNlYearMonth")
+                  shiny::uiOutput("sliderNlPeriod")
                   
 #                   actionButton(inputId="drawMap",
 #                                label = "Draw Map")
@@ -162,7 +173,7 @@ alignCenter <- function(el) {
           shiny::tabPanel(title = "stats",
                    shiny::fluidRow(
                      shinydashboard::box(title = "Annual Trends", 
-                         plotly::plotlyOutput("plotYearly")),
+                         shiny::plotOutput("plotYearly")),
                      
                      shinydashboard::tabBox(
                        shiny::tabPanel(title = "plotPointsCluster",

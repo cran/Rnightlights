@@ -4,24 +4,24 @@
 \alias{getCtryNlDataFnamePath}
 \title{Construct the full path to save the file containing the country data}
 \usage{
-getCtryNlDataFnamePath(ctryCode)
+getCtryNlDataFnamePath(ctryCode, admLevel)
 }
 \arguments{
-\item{ctryCode}{character string The ctryCode of interest}
+\item{ctryCode}{\code{character string} The ctryCode of interest}
+
+\item{admLevel}{\code{character string} The admin level of interest}
 }
 \value{
 Character string the full path to the data file of a country
+            admin level
 }
 \description{
 Construct the full path to save the file containing the country data. Note
     it does not indicate if the file exists
 }
 \examples{
-#get the full path to the file containing data for KEN
-getCtryNlDataFnamePath("KEN")
-
-Rnightlights:::getCtryNlDataFnamePath("KEN")
- #returns full path of the nightlight data file for the country
+#get the full path to the file containing data for KEN counties
+getCtryNlDataFnamePath("KEN", "KEN_adm0")
 
 #@export only due to exploreData() shiny app
 }

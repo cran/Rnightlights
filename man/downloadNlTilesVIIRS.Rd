@@ -4,15 +4,17 @@
 \alias{downloadNlTilesVIIRS}
 \title{Download VIIRS nightlight tile}
 \usage{
-downloadNlTilesVIIRS(nlYearMonth, tileNum,
-  downloadMethod = pkgOptions("downloadMethod"))
+downloadNlTilesVIIRS(nlPeriod, tileNum,
+  downloadMethod = pkgOptions("downloadMethod"), nlType)
 }
 \arguments{
-\item{nlYearMonth}{the year in "YYYYMM" format e.g. "201401"}
+\item{nlPeriod}{the nlPeriod of the tile to download}
 
-\item{tileNum}{the index of the tile as given by getNlTiles("VIIRS")}
+\item{tileNum}{the index of the tile as given by \code{getNlTiles}}
 
 \item{downloadMethod}{The method to use for download.}
+
+\item{nlType}{A character string of nlType}
 }
 \value{
 TRUE/FALSE Whether the download was successful

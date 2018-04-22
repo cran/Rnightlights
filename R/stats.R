@@ -1,45 +1,44 @@
-######################## validStat ###################################
+######################## validNlStats ###################################
 
-#' Check if a statistic given is valid
+#' Check if given statistics are valid
 #'
-#' Check if a statistic given is valid
+#' Check if given statistics are valid. A valid statistic is one which
+#'    is a function available in the current environment and returns
+#'    a valid value to match.fun
 #'
-#' @param nlStat the statistic to check
+#' @param nlStats the statistics to check
 #'
-#' @return TRUE/FALSE
+#' @return named logical TRUE/FALSE
 #'
 #' @examples
 #'
-#' Rnightlights:::validStat("sum")
-#'  #returns TRUE
+#' Rnightlights:::validNlStats(c("sum", "mean"))
+#'  #returns TRUE TRUE
 #'  
-#' Rnightlights:::validStat("unknownFunction")
+#' Rnightlights:::validNlStats("unknownFunction")
 #'  #returns FALSE
 #'
-validStat <- function(nlStat)
+validNlStats <- function(nlStats)
 {
-  if(missing(nlStat))
-    stop("Missing required parameter nlStat")
+  if(missing(nlStats))
+    stop("Missing required parameter nlStats")
   
-  if(!is.character(nlStat) || is.null(nlStat) || is.na(nlStat) || nlStat == "")
-    stop("Invalid nlStat: ", nlStat)
+  if(!is.character(nlStats) || is.null(nlStats) || is.na(nlStats) || nlStats == "")
+    stop("Invalid nlStats")
   
-  matchedFun <- tryCatch(
+  matchedFuns <- sapply(nlStats, function(nlStat)
+    tryCatch(
     {
-      matched <- match.fun(nlStat)
+      matched <- !is.null(match.fun(nlStat))
     }, error = function(err)
     {
       message(paste0("Invalid nlStat: ", nlStat))
-      matched <- NULL
+      matched <- FALSE
       return(matched)
     }
-  )
+  ))
   
-  #if (!tolower(nlStat) %in% c("sum", "mean", "median", "min", "max", "var", "sd"))
-  if(is.null(matchedFun))
-    return(FALSE)
-  else
-    return(TRUE)
+  return(matchedFuns)
 }
 
 ######################## myZonal ###################################
@@ -72,7 +71,7 @@ myZonal <- function (x, z, nlStats, digits = 0, na.rm = TRUE, ...)
   fun <- paste0(sapply(nlStats, function(nlStat) paste0(nlStat,"=", nlStat, "(x, na.rm = TRUE)")), collapse = ", ")
 
   #create the aggregation function
-  funs <- paste0("data[, as.list(unlist(lapply(.SD, function(x) list(", fun, ")))), by=zones]")
+  funs <- paste0("dta[, as.list(unlist(lapply(.SD, function(x) list(", fun, ")))), by=zones]")
   
   vals <- NULL
   
@@ -87,7 +86,7 @@ myZonal <- function (x, z, nlStats, digits = 0, na.rm = TRUE, ...)
   tr <- raster::blockSize(x)
   
   #init the progress bar
-  pb <- utils::txtProgressBar(min=1, max=tr$n, style=3)
+  pb <- utils::txtProgressBar(min=0, max=tr$n, style=3)
   
   #for each block
   for (i in 1:tr$n)
@@ -135,6 +134,14 @@ myZonal <- function (x, z, nlStats, digits = 0, na.rm = TRUE, ...)
 
   message("Calculating nlStats ", base::date())
   
+  if(length(unique(rDT$zones) == 1))
+  {
+    dta <- data.table::as.data.table(rDT)
+    
+    result <- eval(parse(text = funs))
+  }
+  else
+  {
   #calculate the nlStats on the ffdf
   #hard coded the batchbytes which is the size of the
   #data to load into memory. Currently set at 1% of an 8GB memory
@@ -144,18 +151,18 @@ myZonal <- function (x, z, nlStats, digits = 0, na.rm = TRUE, ...)
                              split=as.character(zones),
                              trace=TRUE,
                              BATCHBYTES = 80.85*2^20,
-                             FUN = function(data){
+                             FUN = function(dta){
                                ## This happens in RAM - containing **several** split 
                                #elements so here we can use data.table which works 
                                #fine for in RAM computing
-                               data <- data.table::as.data.table(data)
+                               dta <- data.table::as.data.table(dta)
                                
                                #calc aggregations
                                result <- eval(parse(text = funs))
                                
                                as.data.frame(result)
                              })
-  
+  }
   #name the columns
   result <- stats::setNames(result, c("z", nlStats))
 
@@ -178,6 +185,8 @@ myZonal <- function (x, z, nlStats, digits = 0, na.rm = TRUE, ...)
 #'     \url{http://www.guru-gis.net/efficient-zonal-statistics-using-r-and-gdal/}
 #'
 #' @param ctryCode the ctryCode of interest
+#' 
+#' @param admLevel The country admin level of interest
 #'
 #' @param ctryPoly the SpatialPolygonsDataFrame country polygon to process
 #'
@@ -195,7 +204,7 @@ myZonal <- function (x, z, nlStats, digits = 0, na.rm = TRUE, ...)
 #'
 #' @return TRUE/FALSE
 #'
-ZonalPipe <- function (ctryCode, ctryPoly, path.in.shp, path.in.r, path.out.r, path.out.shp, zone.attribute, nlStats)
+ZonalPipe <- function (ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r, path.out.shp, zone.attribute, nlStats)
 {
   #Source: http://www.guru-gis.net/efficient-zonal-statistics-using-r-and-gdal/
   #path.in.shp: Shapefile with zone (INPUT)
@@ -226,10 +235,10 @@ ZonalPipe <- function (ctryCode, ctryPoly, path.in.shp, path.in.r, path.out.r, p
   if(missing(nlStats))
     stop("Missing required parameter nlStats")
   
-  if(!validCtryCode(ctryCode))
+  if(!validCtryCodes(ctryCode))
     stop("Invalid ctryCode: ", ctryCode)
   
-  if(!allValid(nlStats, validStat))
+  if(!allValid(nlStats, validNlStats))
     stop("Invalid stat(s) detected")
   
   # 1/ Rasterize using GDAL
@@ -257,8 +266,8 @@ ZonalPipe <- function (ctryCode, ctryPoly, path.in.shp, path.in.r, path.out.r, p
     #Specifying makes it run faster (?)
     res<-paste(raster::res(r)[1], raster::res(r)[2])
     
-    lowestLyrName <- getCtryShpLowestLyrName(ctryCode)
-    lowestIDCol <- paste0("ID_", gsub("[^[:digit:]]", "", lowestLyrName))
+    lyrName <- admLevel #getCtryShpLowestLyrNames(ctryCode)
+    lowestIDCol <- paste0("ID_", gsub("[^[:digit:]]", "", lyrName))
     
     tempRast <- file.path(getNlDir("dirZonals"), "temprast.tif")
     
@@ -267,7 +276,7 @@ ZonalPipe <- function (ctryCode, ctryPoly, path.in.shp, path.in.r, path.out.r, p
     command<-'gdal_rasterize'
     #Speed-up with more cache (avice: max 1/3 of your total RAM)
     command<-paste(command, paste0("--config GDAL_CACHEMAX ", pkgOptions("gdalCacheMax")))
-    command<-paste(command, "-l", lowestLyrName)
+    command<-paste(command, "-l", lyrName)
     #Identifies an attribute field on the features to be used for a burn
     #in value. The value will be burned into all output bands.
     command<-paste(command, "-a", zone.attribute) 
@@ -309,21 +318,25 @@ ZonalPipe <- function (ctryCode, ctryPoly, path.in.shp, path.in.r, path.out.r, p
   return(Zstat)
   
   # 3/ Merge data in the shapefile and write it #Not required at this point
-  #shp<-readOGR(path.in.shp, layer= sub("^([^.]*).*", "\\1", basename(path.in.shp)))
+  #shp<-rgdal::readOGR(path.in.shp, sub("^([^.]*).*", "\\1", basename(path.in.shp)))
   
   #shp@data <- data.frame(shp@data, Zstat[match(shp@data[,zone.attribute], Zstat[, "z"]),])
   
-  #writeOGR(shp, path.out.shp, layer= sub("^([^.]*).*", "\\1", basename(path.in.shp)), driver="ESRI Shapefile")
+  #rgdal::writeOGR(shp, path.out.shp, layer= sub("^([^.]*).*", "\\1", basename(path.in.shp)), driver="ESRI Shapefile")
 }
 
 ######################## fnAggRadGdal ###################################
 
-#' Calculate zonal statistics using GDAL. Faster than fnAggRadRast for large polygons.
+#' Calculate zonal statistics using GDAL
 #'
-#' Calculate zonal statistics. Alternative to fnAggRadRast using GDAL. Faster for large polygons. 
-#'     Modified from \url{http://www.guru-gis.net/efficient-zonal-statistics-using-r-and-gdal/}
+#' Calculate zonal statistics using GDAL. Alternative to fnAggRadRast and 
+#'     faster. Modified from 
+#'     \url{http://www.guru-gis.net/efficient-zonal-statistics-using-r-and-gdal/}
 #'
 #' @param ctryCode character string the ISO3 country code to be processed
+#' 
+#' @param admLevel character string The admin level to process. Should match
+#'     the \code{ctryPoly} given but no checks are made currently.
 #'
 #' @param ctryPoly Polygon the loaded country polygon layer
 #' 
@@ -338,15 +351,15 @@ ZonalPipe <- function (ctryCode, ctryPoly, path.in.shp, path.in.r, path.out.r, p
 #' @examples
 #' #read the Kenya polygon downloaded from GADM and load the lowest admin level (ward)
 #' \dontrun{
-#' ctryPoly <- rgdal::readOGR(Rnightlights:::getPolyFnamePath(ctryCode="KEN"), 
-#'     Rnightlights:::getCtryShpLowestLyrName(ctryCode="KEN"))
+#' ctryPoly <- readCtryPolyAdmLayer(ctryCode="KEN", 
+#'     Rnightlights:::getCtryShpLowestLyrNames(ctryCode="KEN"))
 #'     
 #' #calculate the sum of radiances for the wards in Kenya
 #' sumAvgRadRast <- Rnightlights:::fnAggRadGdal(ctryCode="KEN", ctryPoly=ctryPoly,
-#'     nlType="VIIRS", nlPeriod="201401", nlStats=c("sum","mean"))
+#'     nlType="VIIRS.M", nlPeriod="201401", nlStats=c("sum","mean"))
 #' }
 #'
-fnAggRadGdal <- function(ctryCode, ctryPoly, nlType, nlPeriod, nlStats=pkgOptions("nlStats"))
+fnAggRadGdal <- function(ctryCode, admLevel, ctryPoly, nlType, nlPeriod, nlStats=pkgOptions("nlStats"))
 {
   if(missing(ctryCode))
     stop("Missing required parameter ctryCode")
@@ -354,54 +367,54 @@ fnAggRadGdal <- function(ctryCode, ctryPoly, nlType, nlPeriod, nlStats=pkgOption
   if(missing(nlPeriod))
     stop("Missing required parameter nlPeriod")
   
-  if(!validCtryCode(ctryCode))
+  if(!validCtryCodes(ctryCode))
     stop("Invalid ctryCode: ", ctryCode)
   
-  if(nchar(nlPeriod) == 4)
-    nlType <- "OLS"
-  else if(nchar(nlPeriod) == 6)
-    nlType <- "VIIRS"
-  
-  if(!validNlPeriod(nlPeriod, nlType))
+  if(!allValidNlPeriods(nlPeriods = nlPeriod, nlTypes = nlType))
     stop("Invalid nlPeriod: ", nlPeriod, " for nlType: ", nlType)
   
-  if(!allValid(nlStats, validStat))
+  if(!allValid(nlStats, validNlStats))
     stop("Invalid stat(s) detected")
   
   #source: http://www.guru-gis.net/efficient-zonal-statistics-using-r-and-gdal/
   
   path.in.shp<- getPolyFnamePath(ctryCode)
   
-  path.in.r<- getCtryRasterOutputFname(ctryCode, nlType, nlPeriod) #or path.in.r<-list.files("/home/, pattern=".tif$")
+  path.in.r<- getCtryRasterOutputFnamePath(ctryCode, nlType, nlPeriod) #or path.in.r<-list.files("/home/, pattern=".tif$")
   
-  path.out.r<- file.path(getNlDir("dirZonals"), paste0(ctryCode, "_zone_", nlType, ".tif"))
+  if(stringr::str_detect(nlType, "VIIRS"))
+    nlTp <- "VIIRS"
+  else
+    nlTp <- "OLS"
   
-  path.out.shp <- file.path(getNlDir("dirZonals"), "zone_withZstat.shp")
+  path.out.r<- file.path(getNlDir("dirZonals"), paste0(admLevel, "_zone_", nlTp, ".tif"))
   
-  zone.attribute <- paste0("ID_", gsub("[^[:digit:]]", "", getCtryShpLowestLyrName(ctryCode)))
+  path.out.shp <- file.path(getNlDir("dirZonals"), paste0(admLevel, "_zone_", nlTp, ".shp"))
   
-  lowestLyrName <- getCtryShpLowestLyrName(ctryCode)
+  zone.attribute <- paste0("ID_", gsub("[^[:digit:]]", "", admLevel))
   
-  lowestIDCol <- paste0("ID_", gsub("[^[:digit:]]", "", lowestLyrName))
+  lyrName <- admLevel #getCtryShpLowestLyrNames(ctryCode)
   
-  sumAvgRad <- ZonalPipe(ctryCode, ctryPoly, path.in.shp, path.in.r, path.out.r, path.out.shp, zone.attribute, nlStats=nlStats)
+  lyrIDCol <- paste0("ID_", gsub("[^[:digit:]]", "", lyrName))
+  
+  sumAvgRad <- ZonalPipe(ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r, path.out.shp, zone.attribute, nlStats=nlStats)
   
   ctryPolyData <- ctryPoly@data
   
-  ctryPolyData[,lowestIDCol] <- as.integer(ctryPolyData[,lowestIDCol])
+  ctryPolyData[,lyrIDCol] <- as.integer(ctryPolyData[,lyrIDCol])
   
-  ctryPolyData <- ctryPolyData[order(ctryPolyData[,lowestIDCol]),]
+  ctryPolyData <- ctryPolyData[order(ctryPolyData[,lyrIDCol]),]
   
   #if there is only the country adm level i.e. no lower adm levels than the country adm level then we only have 1 row each but IDs may not match as seen with ATA. treat differently
   #since we do not have IDs to merge by, we simply cbind the columns and return column 2
 
-  if (lowestIDCol == "ID_0")
+  if (lyrIDCol == "ID_0")
   {
     sumAvgRad <- cbind(ctryPolyData$ID_0, sumAvgRad[sumAvgRad$z!=0, ])
   }
   else
   {
-    sumAvgRad <- merge(ctryPolyData, sumAvgRad, by.x=lowestIDCol, by.y="z", all.x=T, sort=T)
+    sumAvgRad <- merge(ctryPolyData, sumAvgRad, by.x=lyrIDCol, by.y="z", all.x=T, sort=T)
   }
   
   return(sumAvgRad)
@@ -433,16 +446,16 @@ fnAggRadGdal <- function(ctryCode, ctryPoly, nlType, nlPeriod, nlStats=pkgOption
 #' @examples
 #' #read the Kenya polygon downloaded from GADM and load the lowest admin level (ward)
 #' \dontrun{
-#' ctryPoly <- rgdal::readOGR(Rnightlights:::getPolyFnamePath(ctryCode="KEN"), 
-#'     Rnightlights:::getCtryShpLowestLyrName(ctryCode="KEN"))
+#' ctryPoly <- readCtryPolyAdmLayer(ctryCode="KEN", 
+#'     Rnightlights:::getCtryShpLowestLyrNames(ctryCode="KEN"))
 #'     
 #' # the VIIRS nightlight raster cropped earlier to the country outline
-#' ctryRastCropped <- raster::raster(Rnightlights:::getCtryRasterOutputFname(ctryCode="KEN",
-#'     nlType="VIIRS", nlPeriod="201401"))
+#' ctryRastCropped <- raster::raster(Rnightlights:::getCtryRasterOutputFnamePath(ctryCode="KEN",
+#'     nlType="VIIRS.M", nlPeriod="201401"))
 #' 
 #' #calculate the sum of radiances for the wards in Kenya
 #' sumAvgRadRast <- Rnightlights:::fnAggRadRast(ctryPoly=ctryPoly,
-#'     ctryRastCropped=ctryRastCropped, nlType="VIIRS", nlStats=c("sum","mean"))
+#'     ctryRastCropped=ctryRastCropped, nlType="VIIRS.M", nlStats=c("sum","mean"))
 #' }
 #' @importFrom foreach %dopar%
 fnAggRadRast <- function(ctryPoly, ctryRastCropped, nlType, nlStats)
@@ -462,14 +475,15 @@ fnAggRadRast <- function(ctryPoly, ctryRastCropped, nlType, nlStats)
   if(missing(nlType))
     stop("Missing required parameter nlType")
   
-  if(!allValid(nlStats, validStat))
+  if(!allValid(nlStats, validNlStats))
     stop("Invalid stat(s) detected")
 
   cl <- snow::makeCluster(pkgOptions("numCores"))
   
   doSNOW::registerDoSNOW(cl = cl)
   
-  pb <- utils::txtProgressBar(min=1, max=nrow(ctryPoly@data), style=3)
+  #max=nrow+1 to handle single row cases since must max > min
+  pb <- utils::txtProgressBar(min=0, max=nrow(ctryPoly@data), style=3)
   progress <- function(n) utils::setTxtProgressBar(pb, n)
   
   #to avoid RCheck notes
@@ -485,9 +499,9 @@ fnAggRadRast <- function(ctryPoly, ctryRastCropped, nlType, nlStats)
                                   
                                   message("PID:", pid, " Extracting data from polygon " , i, " ", base::date())
                                   
-                                  if(nlType=="OLS")
+                                  if(stringr::str_detect(nlType, "OLS"))
                                     dat <- masqOLS(ctryPoly, ctryRastCropped, i)
-                                  else if(nlType=="VIIRS")
+                                  else if(stringr::str_detect(nlType, "VIIRS"))
                                     dat <- masqVIIRS(ctryPoly, ctryRastCropped, i)
                                   
                                   message("PID:", pid, " Calculating the NL stats of polygon ", i, " ", base::date())

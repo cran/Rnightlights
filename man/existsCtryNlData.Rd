@@ -4,16 +4,18 @@
 \alias{existsCtryNlData}
 \title{Check if VIIRS nightlight stats exist locally}
 \usage{
-existsCtryNlData(ctryCode, nlPeriod, stat, nlType)
+existsCtryNlData(ctryCode, admLevel, nlTypes, nlPeriods, nlStats)
 }
 \arguments{
-\item{ctryCode}{character the ISO3 code of the country}
+\item{ctryCode}{character The ISO3 code of the country}
 
-\item{nlPeriod}{character the nlPeriod}
+\item{admLevel}{character string The country admin level of interest}
 
-\item{stat}{character the stat to check for}
+\item{nlTypes}{character The nlTypes}
 
-\item{nlType}{character the nlType}
+\item{nlPeriods}{character The nlPeriods}
+
+\item{nlStats}{character The nlStats to check for}
 }
 \value{
 TRUE/FALSE
@@ -24,6 +26,6 @@ Check if VIIRS nightlight data for the country exists in the country
     file exists.
 }
 \examples{
-Rnightlights:::existsCtryNlData("KEN", "201401", "sum", "VIIRS")
+Rnightlights:::existsCtryNlData("KEN", "KEN_adm0", "VIIRS.M","201401", "sum")
 
 }

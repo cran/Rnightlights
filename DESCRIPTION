@@ -1,6 +1,6 @@
 Package: Rnightlights
-Version: 0.1.5
-Date: 2018-01-03
+Version: 0.2.0
+Date: 2018-04-21
 Title: Satellite Nightlight Data Extraction
 Description: Extracts raster and zonal statistics
     from satellite nightlight rasters downloaded from the United States 
@@ -19,15 +19,15 @@ Imports: cleangeo, compiler, data.table, doSNOW, dplyr, ff, ffbase,
         foreach, gdalUtils, lubridate, methods, raster, readr,
         reshape2, rgdal, rgeos, R.utils, rvest, rworldmap, settings,
         snow, sp, stats, stringr, utils, xml2
-Suggests: dendextend, ggdendro, ggplot2, leaflet, plotly, RColorBrewer,
-        shiny, shinydashboard, testthat
+Suggests: dendextend, DT, ggdendro, ggplot2, leaflet, plotly,
+        RColorBrewer, shiny, shinydashboard, testthat
 SystemRequirements: gdal wget curl aria2
 RoxygenNote: 6.0.1
 BugReports: https://github.com/chrisvwn/Rnightlights/issues
 URL: https://github.com/chrisvwn/Rnightlights
 NeedsCompilation: no
-Packaged: 2018-01-07 14:33:18 UTC; chris
+Packaged: 2018-04-22 15:02:01 UTC; chris
 Author: Christopher Njuguna [aut, cre, cph]
 Maintainer: Christopher Njuguna <chris.njuguna@gmail.com>
 Repository: CRAN
-Date/Publication: 2018-01-07 22:29:23 UTC
+Date/Publication: 2018-04-22 15:26:38 UTC

@@ -4,11 +4,13 @@
 \alias{listCtryNlData}
 \title{List available data}
 \usage{
-listCtryNlData(ctryCodes = NULL, nlPeriods = NULL, nlTypes = NULL,
-  source = "local")
+listCtryNlData(ctryCodes = NULL, admLevels = NULL, nlPeriods = NULL,
+  nlTypes = NULL, source = "local")
 }
 \arguments{
 \item{ctryCodes}{A character vector of ctryCodes to filter by}
+
+\item{admLevels}{A character vector of admLevels to filter by}
 
 \item{nlPeriods}{A character vector of nlPeriods to filter by}
 
@@ -31,10 +33,10 @@ listCtryNlData()
 #list all data available for KEN
 listCtryNlData(ctryCodes = "KEN")
 
-#list all VIIRS data available for ECU
+#list all VIIRS.* data available for ECU
 listCtryNlData(ctryCodes = "ECU", nlTypes = "VIIRS")
 
-#list available OLS data for KEN and RWA in 2012 & 2013
-listCtryNlData(ctryCodes = c("KEN","RWA"), nlPeriods = c("2012", "2013"), nlTypes = "OLS")
+#list available OLS.Y data for KEN and RWA in 2012 & 2013
+listCtryNlData(ctryCodes = c("KEN","RWA"), nlPeriods = c("2012", "2013"), nlTypes = "OLS.Y")
 
 }
