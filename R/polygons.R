@@ -306,6 +306,9 @@ existsPolyFnameZip <- function(ctryCode)
 #'
 #' @param lyrNums the layer numbers starting from 0 = country level, 
 #'     1 = first admin level
+#'     
+#' @param dnldPoly \code{logical} If the country polygon doesn't exist 
+#'     should we download it?
 #'
 #' @return Character layer name
 #'
@@ -318,7 +321,7 @@ existsPolyFnameZip <- function(ctryCode)
 #' 
 #' #export only due to exploreData() shiny app
 #' @export
-getCtryShpLyrNames <- function(ctryCodes, lyrNums)
+getCtryShpLyrNames <- function(ctryCodes, lyrNums, dnldPoly)
 {
   if(missing(ctryCodes))
     stop("Missing required parameter ctryCode")
@@ -326,8 +329,14 @@ getCtryShpLyrNames <- function(ctryCodes, lyrNums)
   if(!allValidCtryCodes(ctryCodes))
     stop("Invalid ctryCode detected")
   
-
-  #TODO: check if the polygon exists
+  if(missing(dnldPoly))
+    dnldPoly <- TRUE
+  
+  if(!existsCtryPoly(ctryCodes))
+    if(!dnldPoly)
+      message("ctryPoly doesn't exist. Set dnldPoly=TRUE to download it")
+  else
+    dnldCtryPoly(ctryCodes)
   
   admLyrNames <- stats::setNames(lapply(ctryCodes, function(ctryCode)
   {
@@ -480,6 +489,12 @@ searchAdmLevel <- function(ctryCode, admLevelName, dnldPoly)
   if(missing(admLevelName))
     stop("Missing required parameter admLevelName")
 
+  if(length(admLevelName) > 1)
+    stop("Only 1 admLevel allowed")
+  
+  if(missing(dnldPoly))
+    dnldPoly <- TRUE
+  
   if(!existsCtryPoly(ctryCode))
     if(!dnldPoly)
       message("ctryPoly doesn't exist. Set dnldPoly=TRUE to download it")
@@ -488,10 +503,19 @@ searchAdmLevel <- function(ctryCode, admLevelName, dnldPoly)
   
   allAdmLevels <- getCtryPolyAdmLevelNames(ctryCode)
 
+  if(admLevelName=="country")
+    return(getCtryShpLyrNames(ctryCode, 0))
+  else if(admLevelName %in% c("bottom", "lowest"))
+    return(getCtryShpLyrNames(ctryCode, length(allAdmLevels)))
+  else if(admLevelName %in% c("top","highest"))
+    return(getCtryShpLyrNames(ctryCode, 1))
+  
   idxFound <- grep(pattern = admLevelName, x = allAdmLevels, ignore.case = TRUE)
   
   if(length(idxFound) == 0)
-    return(NA)
+  {
+      return(NA)
+  }
 
   return (getCtryShpLyrNames(ctryCode, idxFound))
 }
@@ -525,7 +549,7 @@ validCtryAdmLvls <- function(ctryCode, admLevels)
   if(!validCtryCodes(ctryCode))
     stop("Invalid ISO3 ctryCode: ", ctryCode)
   
-  ctryAdmLvls <- getCtryShpAllAdmLvls(ctryCode)
+  ctryAdmLvls <- getCtryPolyAdmLevelNames(ctryCode)
   
   validAdmLvls <- sapply(toupper(admLevels), `%in%`, sapply(ctryAdmLvls, toupper))
   
