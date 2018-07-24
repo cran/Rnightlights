@@ -45,8 +45,13 @@ validNlPeriods <- function(nlPeriods, nlTypes)
   #nlPeriods <- as.character(nlPeriods)
   #nlTypes <- as.character(nlTypes)
 
-  if(length(nlTypes) == 1)
-    return(stats::setNames(list(stats::setNames(nlPeriods %in% unlist(getAllNlPeriods(nlTypes)), nlPeriods)),nlTypes))
+  # if(length(nlTypes) == 1)
+  #   return(stats::setNames(list(stats::setNames(nlPeriods %in% unlist(getAllNlPeriods(nlTypes)), nlPeriods)),nlTypes))
+
+  # if(is.list(nlPeriods)length(nlPeriods) != length(nlTypes))
+  #   stop("nlPeriods and nlTypes are not same length")
+  
+  nlTypes <- unlist(nlTypes)
   
   validPeriods <- stats::setNames(lapply(1:length(nlTypes), function(i){
     nlT <- nlTypes[i]
@@ -54,8 +59,9 @@ validNlPeriods <- function(nlPeriods, nlTypes)
     allNlPeriods <- unlist(getAllNlPeriods(nlT))
     
     valid <- stats::setNames(nlPs %in% allNlPeriods, nlPs)
+    
     if(!all(valid))
-      message("Invalid nlPeriods::", nlT,":",paste0(nlPs[!valid], sep=","))
+      message("Invalid nlPeriods:: ", nlT,":",paste0(nlPs[!valid], sep=","))
     return(valid)
     }), nlTypes)
 
@@ -132,19 +138,17 @@ nlRange <- function(startNlPeriod, endNlPeriod, nlType)
   }
   else
   {
-    if(allValidNlPeriods(nlPeriods = c(startNlPeriod, endNlPeriod), nlTypes =  "OLS.Y"))
-      nlType <- "OLS.Y"
-    else if(allValidNlPeriods(nlPeriods = c(startNlPeriod, endNlPeriod), nlTypes="VIIRS.D"))
-      nlType <- "VIIRS.D"
-    else if(allValidNlPeriods(nlPeriods = c(startNlPeriod, endNlPeriod), nlTypes = "VIIRS.M"))
-      nlType <- "VIIRS.M"
-    else if(allValidNlPeriods(nlPeriods = c(startNlPeriod, endNlPeriod), nlTypes = "VIIRS.Y"))
-      nlType <- "VIIRS.Y"
-    else
+    for(x in getAllNlTypes())
+    {
+      if(unlist(suppressMessages(validNlPeriods(nlPeriods = startNlPeriod, nlTypes = x))) && unlist(suppressMessages(validNlPeriods(nlPeriods = endNlPeriod, nlTypes = x))))
+        nlType <- x
+    }
+    
+    if(is.null(nlType))
       stop("Invalid start/end nlPeriod")
   }
 
-  allNlPeriods <- unlist(getAllNlPeriods(nlType))
+  allNlPeriods <- unname(unlist(getAllNlPeriods(nlType)))
     
   start <- grep(startNlPeriod, allNlPeriods)
   
@@ -182,41 +186,42 @@ getAllNlPeriods <- function(nlTypes)
   if (!allValidNlTypes(nlTypes))
     stop("Invalid nlType: ", nlTypes)
   
-  lapply(nlTypes, function(nlType)
-  if (stringr::str_detect(nlType, "OLS"))
+  sapply(nlTypes, function(nlType)
   {
-    return (1992:2013)
-  }
-  else if(stringr::str_detect(nlType, "VIIRS"))
-  {
-    if (stringr::str_detect(nlType, "D")) #D=daily
+    if (stringr::str_detect(nlType, "OLS"))
     {
-      startDate <- "2017-11-20"
-      
-      nlYrMthDys <- gsub("-", "", seq(as.Date(startDate), as.Date(date(), "%c"), by = "day"))
-      
-      return (nlYrMthDys)
+      return (1992:2013)
     }
-    else if (stringr::str_detect(nlType, "M")) #M=monthly
+    else if(stringr::str_detect(nlType, "VIIRS"))
     {
-      startDate <- "2012-04-01"
-      
-      nlYrMths <- substr(gsub("-", "", seq(as.Date(startDate), as.Date(date(), "%c"), by = "month")), 1, 6)
-  
-      return (nlYrMths)
-    }
-    else if (stringr::str_detect(nlType, "Y")) #Y=yearly
-    {
-      startDate <- "2012-04-01"
-      
-      nlYrs <- substr(gsub("-", "", seq(as.Date(startDate), as.Date(date(), "%c"), by = "year")), 1, 4)
-      
-      return (nlYrs)
+      if (stringr::str_detect(nlType, "D")) #D=daily
+      {
+        startDate <- "2017-11-20"
+        
+        nlYrMthDys <- gsub("-", "", seq(as.Date(startDate), as.Date(date(), "%c"), by = "day"))
+        
+        return (nlYrMthDys)
+      }
+      else if (stringr::str_detect(nlType, "M")) #M=monthly
+      {
+        startDate <- "2012-04-01"
+        
+        nlYrMths <- substr(gsub("-", "", seq(as.Date(startDate), as.Date(date(), "%c"), by = "month")), 1, 6)
+    
+        return (nlYrMths)
+      }
+      else if (stringr::str_detect(nlType, "Y")) #Y=yearly
+      {
+        startDate <- "2012-04-01"
+        
+        nlYrs <- substr(gsub("-", "", seq(as.Date(startDate), as.Date(date(), "%c"), by = "year")), 1, 4)
+        
+        return (nlYrs)
+      }
+      else
+        return()
     }
     else
       return()
-  }
-  else
-    return()
-  )
+  }, simplify = FALSE)
 }

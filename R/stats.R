@@ -201,10 +201,14 @@ myZonal <- function (x, z, nlStats, digits = 0, na.rm = TRUE, ...)
 #' @param zone.attribute The zonal attribute to calculate
 #'
 #' @param nlStats The stats to calculate
-#'
+#' 
+#' @param gadmVersion The GADM version to use
+#' 
+#' @param custPolyPath Alternative to GADM. A path to a custom shapefile zip
+#' 
 #' @return TRUE/FALSE
 #'
-ZonalPipe <- function (ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r, path.out.shp, zone.attribute, nlStats)
+ZonalPipe <- function (ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r, path.out.shp, zone.attribute, nlStats, gadmVersion=pkgOptions("gadmVersion"), custPolyPath=NULL)
 {
   #Source: http://www.guru-gis.net/efficient-zonal-statistics-using-r-and-gdal/
   #path.in.shp: Shapefile with zone (INPUT)
@@ -267,9 +271,18 @@ ZonalPipe <- function (ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, pat
     res<-paste(raster::res(r)[1], raster::res(r)[2])
     
     lyrName <- admLevel #getCtryShpLowestLyrNames(ctryCode)
-    lowestIDCol <- paste0("ID_", gsub("[^[:digit:]]", "", lyrName))
+    lowestIDCol <- if(!is.null(custPolyPath))
+    {
+      if(gadmVersion == "2.8")
+        paste0("ID_", stringr::str_extract(lyrName, "\\d+$"))
+      else if(gadmVersion == "3.6")
+        paste0("GID_", stringr::str_extract(lyrName, "\\d+$"), "_IDX")
+    }else
+    {
+      paste0("GID_IDX")
+    }
     
-    tempRast <- file.path(getNlDir("dirZonals"), "temprast.tif")
+    tempRast <- file.path(getNlDir("dirNlTemp"), paste0(basename(tempfile()), ".tif"))
     
     #Gdal_rasterize
     message("Creating zonal raster")
@@ -345,21 +358,25 @@ ZonalPipe <- function (ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, pat
 #' @param nlPeriod character string the nlPeriod to be processed
 #' 
 #' @param nlStats character vector The stats to calculate
-#'
+#' 
+#' @param gadmVersion The GADM version to use
+#' 
+#' @param custPolyPath Alternative to GADM. A path to a custom shapefile zip
+#' 
 #' @return data.frame of polygon attributes and the calculated stats, one column per stat
 #'
 #' @examples
 #' #read the Kenya polygon downloaded from GADM and load the lowest admin level (ward)
 #' \dontrun{
 #' ctryPoly <- readCtryPolyAdmLayer(ctryCode="KEN", 
-#'     Rnightlights:::getCtryShpLowestLyrNames(ctryCode="KEN"))
+#'     Rnightlights:::getCtryShpLowestLyrNames(ctryCodes="KEN"))
 #'     
 #' #calculate the sum of radiances for the wards in Kenya
 #' sumAvgRadRast <- Rnightlights:::fnAggRadGdal(ctryCode="KEN", ctryPoly=ctryPoly,
 #'     nlType="VIIRS.M", nlPeriod="201401", nlStats=c("sum","mean"))
 #' }
 #'
-fnAggRadGdal <- function(ctryCode, admLevel, ctryPoly, nlType, nlPeriod, nlStats=pkgOptions("nlStats"))
+fnAggRadGdal <- function(ctryCode, admLevel, ctryPoly, nlType, nlPeriod, nlStats=pkgOptions("nlStats"), gadmVersion=pkgOptions("gadmVersion"), custPolyPath=NULL)
 {
   if(missing(ctryCode))
     stop("Missing required parameter ctryCode")
@@ -378,26 +395,50 @@ fnAggRadGdal <- function(ctryCode, admLevel, ctryPoly, nlType, nlPeriod, nlStats
   
   #source: http://www.guru-gis.net/efficient-zonal-statistics-using-r-and-gdal/
   
-  path.in.shp<- getPolyFnamePath(ctryCode)
+  path.in.shp<- getPolyFnamePath(ctryCode = ctryCode, gadmVersion = gadmVersion, custPolyPath = custPolyPath)
   
-  path.in.r<- getCtryRasterOutputFnamePath(ctryCode, nlType, nlPeriod) #or path.in.r<-list.files("/home/, pattern=".tif$")
+  path.in.r<- getCtryRasterOutputFnamePath(ctryCode = ctryCode, nlType = nlType, nlPeriod = nlPeriod, gadmVersion = gadmVersion, custPolyPath = custPolyPath) #or path.in.r<-list.files("/home/, pattern=".tif$")
   
   if(stringr::str_detect(nlType, "VIIRS"))
     nlTp <- "VIIRS"
   else
     nlTp <- "OLS"
   
-  path.out.r<- file.path(getNlDir("dirZonals"), paste0(admLevel, "_zone_", nlTp, ".tif"))
+  if(is.null(custPolyPath))
+    path.out.r<- file.path(getNlDir("dirZonals"), paste0(admLevel, "_zone_", nlTp, "_", gadmVersion, ".tif"))
+  else
+    path.out.r<- file.path(getNlDir("dirZonals"), paste0(admLevel, "_zone_", nlTp, ".tif"))
   
-  path.out.shp <- file.path(getNlDir("dirZonals"), paste0(admLevel, "_zone_", nlTp, ".shp"))
+  if(is.null(custPolyPath))
+    path.out.shp <- file.path(getNlDir("dirZonals"), paste0(admLevel, "_zone_", nlTp, "_", gadmVersion, ".shp"))
+  else
+    path.out.shp <- file.path(getNlDir("dirZonals"), paste0(admLevel, "_zone_", nlTp, ".shp"))
   
-  zone.attribute <- paste0("ID_", gsub("[^[:digit:]]", "", admLevel))
+  zone.attribute <- if(is.null(custPolyPath))
+  {
+    if(gadmVersion == "2.8")
+      paste0("ID_", stringr::str_extract(admLevel, "\\d+$"))
+    else if(gadmVersion == "3.6")
+      paste0("GID_", stringr::str_extract(admLevel, "\\d+$"), "_IDX")
+  }else
+  {
+    paste0("GID_IDX")
+  }
   
   lyrName <- admLevel #getCtryShpLowestLyrNames(ctryCode)
   
-  lyrIDCol <- paste0("ID_", gsub("[^[:digit:]]", "", lyrName))
+  lyrIDCol <- if(is.null(custPolyPath))
+  {
+    if(gadmVersion == "2.8")
+      paste0("ID_", stringr::str_extract(lyrName, "\\d+$"))
+    else if(gadmVersion == "3.6")
+      paste0("GID_", stringr::str_extract(lyrName, "\\d+$"), "_IDX")
+  }else
+  {
+    paste0("GID_IDX")
+  }
   
-  sumAvgRad <- ZonalPipe(ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r, path.out.shp, zone.attribute, nlStats=nlStats)
+  sumAvgRad <- ZonalPipe(ctryCode = ctryCode, admLevel = admLevel, ctryPoly = ctryPoly, path.in.shp = path.in.shp, path.in.r = path.in.r, path.out.r = path.out.r, path.out.shp = path.out.shp, zone.attribute = zone.attribute, nlStats=nlStats, gadmVersion = gadmVersion, custPolyPath = custPolyPath)
   
   ctryPolyData <- ctryPoly@data
   
@@ -408,7 +449,7 @@ fnAggRadGdal <- function(ctryCode, admLevel, ctryPoly, nlType, nlPeriod, nlStats
   #if there is only the country adm level i.e. no lower adm levels than the country adm level then we only have 1 row each but IDs may not match as seen with ATA. treat differently
   #since we do not have IDs to merge by, we simply cbind the columns and return column 2
 
-  if (lyrIDCol == "ID_0")
+  if (grepl("ID_0",lyrIDCol))
   {
     sumAvgRad <- cbind(ctryPolyData$ID_0, sumAvgRad[sumAvgRad$z!=0, ])
   }
@@ -441,13 +482,15 @@ fnAggRadGdal <- function(ctryCode, admLevel, ctryPoly, nlType, nlPeriod, nlStats
 #' 
 #' @param nlStats The statistics to calculate
 #' 
+#' @param custPolyPath Alternative to GADM. A path to a custom shapefile zip
+#' 
 #' @return data.frame of polygon attributes and the calculated stats, one column per nlStat
 #'
 #' @examples
 #' #read the Kenya polygon downloaded from GADM and load the lowest admin level (ward)
 #' \dontrun{
 #' ctryPoly <- readCtryPolyAdmLayer(ctryCode="KEN", 
-#'     Rnightlights:::getCtryShpLowestLyrNames(ctryCode="KEN"))
+#'     Rnightlights:::getCtryShpLowestLyrNames(ctryCodes="KEN"))
 #'     
 #' # the VIIRS nightlight raster cropped earlier to the country outline
 #' ctryRastCropped <- raster::raster(Rnightlights:::getCtryRasterOutputFnamePath(ctryCode="KEN",
@@ -458,7 +501,7 @@ fnAggRadGdal <- function(ctryCode, admLevel, ctryPoly, nlType, nlPeriod, nlStats
 #'     ctryRastCropped=ctryRastCropped, nlType="VIIRS.M", nlStats=c("sum","mean"))
 #' }
 #' @importFrom foreach %dopar%
-fnAggRadRast <- function(ctryPoly, ctryRastCropped, nlType, nlStats)
+fnAggRadRast <- function(ctryPoly, ctryRastCropped, nlType, nlStats, custPolyPath=NULL)
 {
   if(missing(ctryPoly))
     stop("Missing required parameter ctryPoly")

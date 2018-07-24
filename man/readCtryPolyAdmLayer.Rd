@@ -4,7 +4,8 @@
 \alias{readCtryPolyAdmLayer}
 \title{Read a country admLevel polygon}
 \usage{
-readCtryPolyAdmLayer(ctryCode, admLevel, polyType = "rds", dnldPoly = TRUE)
+readCtryPolyAdmLayer(ctryCode, admLevel, polyType = "rds", dnldPoly = TRUE,
+  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{\code{character} The ctryCode of the country of interest}
@@ -16,6 +17,10 @@ format.}
 
 \item{dnldPoly}{\code{logical} If the country polygon doesn't exist 
 should we download it?}
+
+\item{gadmVersion}{The GADM version to use}
+
+\item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }
 \value{
 \code{SpatialPolygonsDataFrame} The admLevel polygon layer or NULL 

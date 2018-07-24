@@ -4,7 +4,8 @@
 \alias{saveCtryNlData}
 \title{Save a data frame of a country's data to the appropriate location}
 \usage{
-saveCtryNlData(ctryNlDataDF, ctryCode, admLevel)
+saveCtryNlData(ctryNlDataDF, ctryCode, admLevel,
+  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryNlDataDF}{dataframe with the country data to save}
@@ -12,6 +13,10 @@ saveCtryNlData(ctryNlDataDF, ctryCode, admLevel)
 \item{ctryCode}{the ctryCode to which the data belongs}
 
 \item{admLevel}{the country admin level to process}
+
+\item{gadmVersion}{The GADM version to use}
+
+\item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }
 \value{
 None

@@ -5,7 +5,8 @@
 \title{Create a zonal file if it does not exist and calculate the zonal stats}
 \usage{
 ZonalPipe(ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r,
-  path.out.shp, zone.attribute, nlStats)
+  path.out.shp, zone.attribute, nlStats,
+  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{the ctryCode of interest}
@@ -25,6 +26,10 @@ ZonalPipe(ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r,
 \item{zone.attribute}{The zonal attribute to calculate}
 
 \item{nlStats}{The stats to calculate}
+
+\item{gadmVersion}{The GADM version to use}
+
+\item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }
 \value{
 TRUE/FALSE
