@@ -71,13 +71,8 @@ if (!requireNamespace("rgdal", quietly = TRUE))
   missingPkgs <- c(missingPkgs, "rgdal")
 }
 
-if (!requireNamespace("Rnightlights", quietly = TRUE))
-{
-  missingPkgs <- c(missingPkgs, "Rnightlights")
-}
-
 if(!is.null(missingPkgs))
- stop("Missing packages needed for this function to work. 
+ stop(Sys.time(), ": Missing packages needed for this function to work. 
       Please install missing packages: '", paste0(missingPkgs, collapse = ", "), "'", call. = FALSE)
  
  
@@ -103,12 +98,36 @@ shiny::shinyServer(function(input, output, session){
       shiny::actionButton("btnGo", "LOAD", style="background-color:lightblue")
   })
   
+  ######################## renderUI countries ###################################
+  
   output$countries <- shiny::renderUI({
     shiny::selectizeInput(inputId = "countries",
                         label = "Select Country(ies)",
                         choices = ctryCodesWithData(),
                         multiple = TRUE
     )
+  })
+  
+  ######################## renderUI polySrc ###################################
+  
+  output$polySrc <- shiny::renderUI({
+    if(is.null(input$countries))
+      return()
+    
+    polySrcs <- Rnightlights::listCtryNlData(ctryCode=input$countries)$polySrc
+    
+    shiny::selectInput(inputId = "polySrc", label = "polySrc", choices = polySrcs)
+  })
+  
+  ######################## renderUI polyVer ###################################
+  
+  output$polyVer <- shiny::renderUI({
+    if(is.null(input$countries) || is.null(input$polySrc))
+      return()
+    
+    polyVers <- Rnightlights::listCtryNlData(ctryCode=input$countries, polySrcs = input$polySrc)$polyVer
+    
+    shiny::selectInput(inputId = "polyVer", label = "polyVer", choices = polyVers)
   })
   
   ######################## reactive ctryCodesWithData ###################################
@@ -120,9 +139,21 @@ shiny::shinyServer(function(input, output, session){
     
     ctryCodeNames <- lapply(ctryCodesWithData, function(x) Rnightlights::ctryCodeToName(x))
     
+    ctryCodeNames[is.na(ctryCodeNames)] <- "---"
+    
     ctryCodesWithData <- stats::setNames(ctryCodesWithData, ctryCodeNames)
     
     ctryCodesWithData
+  })
+  
+  ######################## reactive getInputCountries ###########################
+  
+  getInputCountries <- reactive({
+    countries <- input$countries
+    
+    countries[countries=="---" | countries==" "] <- ""
+    
+    countries
   })
   
   ######################## reactive ctryAdmLevels ###################################
@@ -130,12 +161,25 @@ shiny::shinyServer(function(input, output, session){
     ctryAdmLevels <- shiny::reactive({
       #print(paste0("here: ctryAdmLevels"))
       
-      # if (length(input$countries) != 1)
-      #   return()
-
-      admLevelNames <- Rnightlights:::getCtryStructAdmLevelNames(ctryCode = input$countries)
+      countries <- getInputCountries()
       
-      c("country", admLevelNames)
+      polySrc <- input$polySrc
+      
+      polyVer <- input$polyVer
+      
+      if((length(countries) == 0 || countries == ""))
+        if(is.null(polySrc) || polySrc == "" || polySrc == "GADM" || is.null(polyVer) || polyVer == "")
+          return()
+      
+      if(!(length(countries) == 0 || countries == ""))
+        if(is.null(polySrc) || polySrc == "" || is.null(polyVer) || polyVer == "")
+          return()
+      
+      custPolyPath <- if(polySrc == "CUST") polyVer else NULL
+      
+      admLevelNames <- Rnightlights:::getCtryStructAdmLevelNames(ctryCode = countries, gadmVersion = polyVer, custPolyPath = custPolyPath)
+      
+      admLevelNames
     })
     
   ######################## reactive ctryAdmLevelNames ###################################
@@ -143,12 +187,18 @@ shiny::shinyServer(function(input, output, session){
     ctryAdmLevelNames <- shiny::reactive({
       #print(paste0("here: ctryAdmLevelNames"))
       
-      countries <- input$countries
+      countries <- getInputCountries()
       
       if (length(countries) != 1)
         return()
 
-      ctryStructFile <- Rnightlights:::getCtryStructFnamePath(ctryCode = countries)
+      polySrc <- input$polySrc
+      
+      polyVer <- input$polyVer
+      
+      custPolyPath <- if(polySrc == "CUST") polyVer else NULL
+      
+      ctryStructFile <- Rnightlights:::getCtryStructFnamePath(ctryCode = countries, gadmVersion = polyVer, custPolyPath = custPolyPath)
       
       if(!file.exists(ctryStructFile))
         return()
@@ -160,7 +210,7 @@ shiny::shinyServer(function(input, output, session){
       colClasses[-grep("area_sq_km|NL_", colClasses)] <- "character"
       colClasses[grep("area_sq_km|NL_", colClasses)] <- "NULL"
       
-      data <- data.table::fread(Rnightlights:::getCtryStructFnamePath(ctryCode = countries), colClasses = colClasses, header = T)
+      data <- data.table::fread(Rnightlights:::getCtryStructFnamePath(ctryCode = countries, gadmVersion = polyVer, custPolyPath = custPolyPath), colClasses = colClasses, header = T)
     })
   
   ######################## reactive ctryNlTypes ###################################
@@ -168,65 +218,23 @@ shiny::shinyServer(function(input, output, session){
   ctryNlTypes <- shiny::reactive({
     #print(paste0("here: ctryNlTypes"))
     
-    countries <- input$countries
+    countries <- getInputCountries()
     
-    if (length(countries) < 1)
-     return()
+    polySrc <- input$polySrc
     
-    #temp <- data.table::fread(Rnightlights::getCtryNlDataFnamePath(input$countries), nrows = 1, header = T)
+    polyVer <- input$polyVer
     
-    #temp <- ctryNlData()
+    if ((length(countries) == 0 || grepl("^\\s*$", countries)) && (is.null(polySrc) || polySrc =="" || is.null(polyVer) || polyVer==""))
+      return()
     
-    nlTypes <- NULL
+    if(!(length(countries) == 0 || grepl("^\\s*$", countries)))
+       if(is.null(polySrc) || polySrc =="" || is.null(polyVer) || polyVer=="")
+         return()
     
-    if (length(countries) == 1)
-    {
-      admLevel <- selectedAdmLevel()
-      
-      if(length(admLevel) == 0)
-        return()
-      
-      #admLevel <- paste0(countries,"_adm", admLevel)
-      ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = countries, admLevel = admLevel)
-      
-      if(file.exists(ctryNlDataFile))
-        hdrs <- data.table::fread(ctryNlDataFile, nrows = 1, header = T)
-      else
-        hdrs <- NULL
-      
-      cols <- grep(pattern = "NL_", x = names(hdrs), value = T)
-      
-      nlTypes <- list(unique(sapply(cols, function(x)unlist(strsplit(x, "_"))[2])))
-    }
-    else if(length(countries) > 1) #remove subcountry admin levels
-    {
-      for (ctryCode in countries)
-      {
-        admLevel <- paste0(ctryCode, "_adm0")
-
-        ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = ctryCode, admLevel = admLevel)
-        
-        if(file.exists(ctryNlDataFile))
-          hdrs <- data.table::fread(ctryNlDataFile, nrows = 1, header = T)
-        else
-          hdrs <- NULL
-        
-        cols <- grep(pattern = "NL_", x = names(hdrs), value = T)
-        
-        temp <- list(unique(sapply(cols, function(x)unlist(strsplit(x, "_"))[2])))
-        
-        nlTypes <- c(nlTypes, temp)
-      }
-    }
+    custPolyPath <- if(polySrc == "CUST") polyVer else NULL
     
-    if(is.null(nlTypes))
-      return(NULL)
+    nlTypes <- unique(Rnightlights::listCtryNlData(ctryCodes = countries, polySrcs = polySrc, polyVers = polyVer)$nlType)
     
-    if(length(nlTypes) == 1)
-      nlTypes <- unlist(nlTypes)
-    else
-      nlTypes <- unlist(Reduce(intersect, nlTypes))
-
     return(nlTypes)
   })
   
@@ -236,23 +244,33 @@ shiny::shinyServer(function(input, output, session){
     #print(paste0("here: ctryDataStats"))
     #print(paste0("here: ctryNlTypes"))
     
-    countries <- input$countries
+    countries <- getInputCountries()
+    polySrc <- input$polySrc
+    polyVer <- input$polyVer
     
-    if (length(countries) < 1)
+    if ((length(countries) == 0 || grepl("^\\s*$", countries)) && (is.null(polySrc) || polySrc =="" || polySrc == "GADM" || is.null(polyVer) || polyVer==""))
       return()
 
+    if(is.null(polySrc) || polySrc == "")
+      return()
+    
+    if(is.null(polyVer) || polyVer == "")
+      return()
+    
     nlType <- input$nlType
     
     if(is.null(nlType))
       return(NULL)
         
     nlStats <- NULL
+
+    custPolyPath <- if(polySrc == "CUST") polyVer else NULL
     
     if (length(countries) == 1)
     {
       admLevel <- selectedAdmLevel()
       
-      ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = countries, admLevel = admLevel)
+      ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = countries, admLevel = admLevel, gadmVersion = polyVer, custPoly = custPolyPath)
       
       if(file.exists(ctryNlDataFile))
         hdrs <- data.table::fread(ctryNlDataFile, nrows = 1, header = T)
@@ -269,7 +287,7 @@ shiny::shinyServer(function(input, output, session){
       {
         admLevel <- paste0(ctryCode, "_adm0")
         
-        ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode, admLevel)
+        ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = ctryCode, admLevel = admLevel, gadmVersion = polyVer, custPolyPath = custPolyPath)
         
         if(file.exists(ctryNlDataFile))
           hdrs <- data.table::fread(ctryNlDataFile, nrows = 1, header = T)
@@ -301,10 +319,12 @@ shiny::shinyServer(function(input, output, session){
     #print(paste0("here: ctryNlDataLvl2"))
     input$btnGo
     
-    countries <- shiny::isolate(input$countries)
+    countries <- shiny::isolate(getInputCountries())
+    polySrc <- shiny::isolate(input$polySrc)
+    polyVer <- shiny::isolate(input$polyVer)
     nlType <- shiny::isolate(input$nlType)
     
-    if (length(countries) < 1)
+    if (is.null(polySrc) || polySrc=="" || is.null(polyVer) || polyVer=="")
       return(NULL)
     
     if(is.null(nlType))
@@ -312,13 +332,15 @@ shiny::shinyServer(function(input, output, session){
     
     ctryData <- NULL
     
+    custPolyPath <- if(polySrc == "CUST") polyVer else NULL
+    
     if (length(countries) == 1)
     {
-      admLevel <- unlist(Rnightlights:::getCtryShpAllAdmLvls(countries))[2]
+      admLevel <- unlist(Rnightlights:::getCtryShpAllAdmLvls(ctryCodes = countries, gadmVersion = polyVer, custPolyPath = custPolyPath))[2]
       
       if(input$strict)
       {
-        ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(countries, admLevel)
+        ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = countries, admLevel = admLevel, gadmVersion = polyVer, custPolyPath = custPolyPath)
         
         if(file.exists(ctryNlDataFile))
           ctryData <- data.table::fread(ctryNlDataFile)
@@ -339,7 +361,7 @@ shiny::shinyServer(function(input, output, session){
         admLevel <- paste0(ctryCode, "_adm0")
         #print(ctryCode)
         
-        ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode, admLevel)
+        ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = ctryCode, admLevel = admLevel, gadmVersion = polyVer, custPolyPath = custPolyPath)
         
         if(file.exists(ctryNlDataFile))
           temp <- data.table::fread(ctryNlDataFile)
@@ -379,39 +401,43 @@ shiny::shinyServer(function(input, output, session){
       #print(paste0("here: ctryNlData"))
       input$btnGo
       
-      countries <- shiny::isolate(input$countries)
+      countries <- shiny::isolate(getInputCountries())
+      polySrc <- shiny::isolate(input$polySrc)
+      polyVer <- shiny::isolate(input$polyVer)
       nlType <- shiny::isolate(input$nlType)
       
-      if (length(countries) < 1)
+      if (is.null(polySrc) || polySrc == "" || is.null(polyVer) || polyVer == "")
         return(NULL)
       
       if(is.null(nlType))
         return(NULL)
       
       ctryData <- NULL
+
+      custPolyPath <- if(polySrc == "CUST") polyVer else NULL
       
       if (length(countries) == 1)
       {
         lyrNum <- which(unlist(ctryAdmLevels()) == shiny::isolate(input$admLevel))-1
         
-        admLevel <- unlist(Rnightlights:::getCtryShpLyrNames(countries, lyrNum))
+        admLevel <- unlist(Rnightlights:::getCtryShpLyrNames(ctryCodes = countries, lyrNums = lyrNum, gadmVersion = polyVer, custPolyPath = custPolyPath))
         
         if(input$strict)
         {
-          ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(countries, admLevel)
+          ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = countries, admLevel = admLevel, gadmVersion = polyVer, custPolyPath = custPolyPath)
           
           if(file.exists(ctryNlDataFile))
             ctryData <- data.table::fread(ctryNlDataFile)
         }
         else
         {
-          lyrNum <- Rnightlights:::ctryShpLyrName2Num(Rnightlights:::getCtryShpLowestLyrNames(countries))
+          lyrNum <- Rnightlights:::ctryShpLyrName2Num(Rnightlights:::getCtryShpLowestLyrNames(ctryCodes = countries, gadmVersion = polyVer, custPolyPath = custPolyPath))
           
           while(lyrNum > 0 && is.null(ctryData))
           {
-            admLevel <- Rnightlights:::getCtryShpLyrNames(countries, lyrNum)
+            admLevel <- Rnightlights:::getCtryShpLyrNames(ctryCodes = countries, lyrNums = lyrNum, gadmVersion = polyVer, custPolyPath = custPolyPath)
             
-            ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(countries, admLevel)
+            ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = countries, admLevel = admLevel, gadmVersion = polyVer, custPolyPath = custPolyPath)
         
             if(file.exists(ctryNlDataFile))
               ctryData <- data.table::fread(ctryNlDataFile)
@@ -427,7 +453,7 @@ shiny::shinyServer(function(input, output, session){
           admLevel <- paste0(ctryCode, "_adm0")
           #print(ctryCode)
           
-          ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode, admLevel)
+          ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = ctryCode, admLevel = admLevel, gadmVersion = polyVer, custPolyPath = custPolyPath)
           
           if(file.exists(ctryNlDataFile))
             temp <- data.table::fread(ctryNlDataFile)
@@ -464,7 +490,7 @@ shiny::shinyServer(function(input, output, session){
   ######################## reactive ctryNlDataMelted ###################################
   
     ctryNlDataMelted <- shiny::reactive({
-      #print(paste0("here: ctryNlDataMelted"))
+      print(paste0("here: ctryNlDataMelted"))
       
       ctryData <- ctryNlData()
     
@@ -575,9 +601,18 @@ shiny::shinyServer(function(input, output, session){
       # if(length(input$countries) != 1)
       #   return()
       
+      polySrc <- input$polySrc
+      
+      polyVer <- input$polyVer
+      
+      nlType <- input$nlType
+      
+      if(is.null(polySrc) || polySrc=="" || is.null(polyVer) || polyVer=="" || is.null(nlType))
+        return()
+      
       ctryDtStats <- ctryDataStats()
       
-      if(is.null(ctryDtStats))
+      if(length(ctryDtStats)==0)
         return(NULL)
       
       if(!is.null(input$ctryStat))
@@ -597,7 +632,8 @@ shiny::shinyServer(function(input, output, session){
   ######################## renderUI nlType ###################################
   
   output$nlType <- shiny::renderUI({
-    if(length(input$countries) == 0)
+    countries <- getInputCountries()
+    if(length(countries) == 0 || countries=="")
       return()
     
     nlTypes <- ctryNlTypes()
@@ -666,6 +702,14 @@ shiny::shinyServer(function(input, output, session){
     values$needsDataUpdate <- TRUE
   })
   
+  observeEvent(input$polySrc, {
+    values$needsDataUpdate <- TRUE
+  })
+  
+  observeEvent(input$polyVer, {
+    values$needsDataUpdate <- TRUE
+  })
+  
   observeEvent(input$btnGo, {
     values$needsDataUpdate <- FALSE
   })
@@ -673,8 +717,14 @@ shiny::shinyServer(function(input, output, session){
   ######################## renderUI intraCountry1 ###################################
   
     output$intraCountry1 <- shiny::renderUI({
-      if(length(input$countries) != 1)
+      countries <- getInputCountries()
+      polySrc <- input$polySrc
+      polyVer <- input$polyVer
+      
+      if(length(countries) != 1 || is.null(polySrc) || is.null(polyVer))
         return()
+
+      custPolyPath <- if(polySrc == "CUST") polyVer else NULL
       
       admLevels <- unlist(ctryAdmLevels())
       
@@ -684,7 +734,7 @@ shiny::shinyServer(function(input, output, session){
       if(input$strict)
       admLevels <- unlist(sapply(1:length(admLevels), function(admLevel)
       {
-        ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(input$countries, paste(input$countries, "_adm", admLevel-1, sep = ""))
+        ctryNlDataFile <- Rnightlights::getCtryNlDataFnamePath(ctryCode = countries, admLevel = Rnightlights:::getCtryShpLyrNames(ctryCode = countries, lyrNums = admLevel-1, gadmVersion = polyVer, custPolyPath = custPolyPath), gadmVersion = polyVer, custPolyPath = custPolyPath)
         
         if(file.exists(ctryNlDataFile))
           return(admLevels[admLevel])
@@ -694,7 +744,8 @@ shiny::shinyServer(function(input, output, session){
 
       shiny::radioButtons(inputId = "admLevel", 
                      label = "Admin Level", 
-                     choices = admLevels
+                     choiceNames = admLevels,
+                     choiceValues = gsub("\\s*\\(NA\\)", "", admLevels)
                    )
     })
 
@@ -705,11 +756,15 @@ shiny::shinyServer(function(input, output, session){
     output$intraCountry <- shiny::renderUI({
       
       #print("here: renderUI intracountry")
-      countries <- input$countries
+      countries <- getInputCountries()
       
-      if(length(countries) != 1)
+      polySrc <- input$polySrc
+      
+      polyVer <- input$polyVer
+      
+      if((length(countries) != 1 || identical(countries, character(0)) || grepl("^\\s*$", countries)) && (is.null(polySrc) || polySrc=="" || is.null(polyVer) || polyVer==""))
         return()
-      
+
       ctryAdmLevels <- unlist(ctryAdmLevels())
       
       if(is.null(ctryAdmLevels))
@@ -723,7 +778,7 @@ shiny::shinyServer(function(input, output, session){
           lvl <- ctryAdmLevels[lvlIdx]
           
           if(input$strict)
-            lvlEnabled <- file.exists(Rnightlights::getCtryNlDataFnamePath(countries, paste(input$countries, "_adm", lvlIdx-1, sep = "")))
+            lvlEnabled <- file.exists(Rnightlights::getCtryNlDataFnamePath(countries, paste(getInputCountries(), "_adm", lvlIdx-1, sep = "")))
           else
             lvlEnabled <- TRUE
           
@@ -764,7 +819,7 @@ shiny::shinyServer(function(input, output, session){
     
     selectedAdmLevel <- shiny::reactive({
       
-      if(length(input$countries) > 1)
+      if(length(getInputCountries()) > 1)
         return()
       
       admLvlCtrlNames <- names(input)
@@ -793,7 +848,7 @@ shiny::shinyServer(function(input, output, session){
         
         admLvlNums <- admLvlNums - 1
         
-        admLevel <- admLevel <- paste0(input$countries, "_adm",data.table::last(admLvlNums))
+        admLevel <- paste0(getInputCountries(), "_adm",data.table::last(admLvlNums))
         
         admLevel
     })
@@ -852,7 +907,7 @@ shiny::shinyServer(function(input, output, session){
         top10 <- ""
         
         if(input$strict)
-          lvlEnabled <- file.exists(Rnightlights::getCtryNlDataFnamePath(input$countries, Rnightlights:::getCtryShpLyrNames(input$countries, lvlIdx-1)))
+          lvlEnabled <- file.exists(Rnightlights::getCtryNlDataFnamePath(getInputCountries(), Rnightlights:::getCtryShpLyrNames(getInputCountries(), lvlIdx-1)))
         else
           lvlEnabled <- TRUE
         
@@ -1201,7 +1256,7 @@ shiny::shinyServer(function(input, output, session){
       print(paste0("here: reactive hCluster"))
       input$btnGo
       
-      countries <- shiny::isolate(input$countries)
+      countries <- shiny::isolate(getInputCountries())
       
       if (is.null(countries) || length(countries) > 1)
         return()
@@ -1276,7 +1331,7 @@ shiny::shinyServer(function(input, output, session){
       
       input$btnGo
       
-      countries <- shiny::isolate(input$countries)
+      countries <- shiny::isolate(getInputCountries())
       
       if(length(countries) < 1)
         return()
@@ -1338,7 +1393,7 @@ shiny::shinyServer(function(input, output, session){
       
       input$btnGo
       
-      countries <- shiny::isolate(input$countries)
+      countries <- shiny::isolate(getInputCountries())
       scale <- input$scale
       numClusters <- input$kClusters
       normArea <- input$norm_area
@@ -1441,7 +1496,7 @@ shiny::shinyServer(function(input, output, session){
       #print(paste0("here: plotTSDecomposed"))
       input$btnGo
       
-      countries <- shiny::isolate(input$countries)
+      countries <- shiny::isolate(getInputCountries())
       
       if(length(countries) < 1)
         return()
@@ -1493,7 +1548,7 @@ shiny::shinyServer(function(input, output, session){
         endYear <- lubridate::year(as.Date(maxDate, fmt))
 
         if(startYear == endYear)
-          stop("Only 1 data point (year) in the dataset")
+          stop(Sys.time(), ": Only 1 data point (year) in the dataset")
         
         tsStart <- c(startYear)
         tsEnd <- c(endYear)
@@ -1533,7 +1588,7 @@ shiny::shinyServer(function(input, output, session){
       #print(paste0("here: renderPlotYearly"))
       input$btnGo
       
-      countries <- shiny::isolate(input$countries)
+      countries <- shiny::isolate(getInputCountries())
       
       if (is.null(countries))
         return()
@@ -1627,9 +1682,9 @@ shiny::shinyServer(function(input, output, session){
       #print(paste0("here: renderPlot"))
       input$btnGo
       
-      countries <- shiny::isolate(input$countries)
+      countries <- shiny::isolate(getInputCountries())
       
-      if (is.null(countries))
+      if (is.null(countries) || length(countries) == 0 || countries == "")
         return()
       
       scale <- input$scale
@@ -1836,10 +1891,10 @@ shiny::shinyServer(function(input, output, session){
       
       input$btnGo
 
-      if(is.null(input$countries) || is.null(input$nlPeriod) || is.null(input$nlType))
+      if(is.null(getInputCountries()) || is.null(input$nlPeriod) || is.null(input$nlType))
         return()
 
-      countries <- shiny::isolate(input$countries)
+      countries <- shiny::isolate(getInputCountries())
       nlPeriod <- input$nlPeriod
       admLevel <- shiny::isolate(input$admLevel)
       scale <- input$scale
@@ -1878,9 +1933,9 @@ shiny::shinyServer(function(input, output, session){
       #print(paste0("admlvlNums:", admLvlNums))
 
       #get the selected admLevel and convert to lyrnum
-      ctryAdmLevels <- ctryAdmLevels()
+      ctryAdmLevels <- Rnightlights:::getCtryStructAdmLevelNames(ctryCode = country, gadmVersion = input$polyVer, custPolyPath = NULL)
 
-      ctryAdmLevels <- unlist(ctryAdmLevels[which(countries == country)])
+      #ctryAdmLevels <- unlist(ctryAdmLevels[which(countries == country)])
       
       lyrNum <- which(ctryAdmLevels == admLevel)
       
@@ -1903,20 +1958,6 @@ shiny::shinyServer(function(input, output, session){
         ctryData <- subset(ctryData, variable == nlYm)
       else if(stringr::str_detect(nlType, "VIIRS"))
         ctryData <- subset(ctryData, lubridate::year(variable) == lubridate::year(nlYm) & lubridate::month(variable) == lubridate::month(nlYm))
-      #only used when we want to show only the selected features
-      #for now we want all features shown and then highlight the selected features
-#       for (lvl in admLvlNums)
-#       {
-#         if (lvl == 1)
-#           next()
-#         
-#         print(paste0("lvl:",lvl))
-#         
-#         if (length(input[[x[lvl-1]]])>0)
-#         {
-#           ctryData <- subset(ctryData, ctryData[[ctryAdmLevels[lvl]]] %in% input[[x[lvl-1]]])
-#         }
-#       }
 
       if (normArea)
         ctryData$value <- (ctryData$value)/ctryData$area_sq_km
@@ -1983,18 +2024,15 @@ shiny::shinyServer(function(input, output, session){
 
         selected <- NULL
         
-        if (lyrNum > 1) #skip drawing the country level. avoid reverse seq (2:1)
-        for (iterAdmLevel in 2:lyrNum)
+        if(lyrNum > 1) #skip drawing the country level. avoid reverse seq (2:1)
+        for(iterAdmLevel in 2:lyrNum)
         {
           #aggregate the data to the current level
           iterAdmLevelName <- ctryAdmLevels[iterAdmLevel]
-          #lvlCtryData <- stats::setNames(aggregate(ctryData$value, by=list(ctryData[[iterAdmLevelName]], ctryData[,"variable"]), mean, na.rm=T), c(iterAdmLevelName, "variable", "value"))
-          
-          #temp <- as.data.table(ctryData)
+
           #data already in data.table form
           lvlCtryData <- stats::setNames(ctryData[,list(mean(value,na.rm=T), sum(area_sq_km, na.rm=T)), by=list(ctryData[[iterAdmLevelName]], ctryData[["variable"]])], c(iterAdmLevelName, "variable", "value", "area_sq_km"))
-          #lvlCtryData <- as.data.frame(lvlCtryData)
-          
+
           #rank the data
           varname <- paste0('rank',iterAdmLevel)
           lvlCtryData[[varname]] <- with(lvlCtryData, rank(-value, ties.method = 'first'))
@@ -2014,7 +2052,6 @@ shiny::shinyServer(function(input, output, session){
             selected <- which(ctryPoly@data[[paste0("NAME_",iterAdmLevel-1)]] %in% input[[paste0("selectAdm", iterAdmLevel)]])
           else
             selected <- c()
-          
 
           mapLabels <- sprintf(
             paste0("<strong>%s:%s</strong>", "<br/>Area: %s km<superscript>2</superscript>","<br/>Date: %s", ifelse(normArea, "<br/>Rad: %s /sq.km", "<br/>Rad: %s"), "<br/>Rank: %s/%s"),

@@ -33,9 +33,21 @@ allValid <- function(testData, testFun, ...)
   invalidData <- testData[!valid]
   
   if(length(invalidData) > 0)
-    message("Invalid data: ", paste0(invalidData, collapse = ", "))
+    message(Sys.time(), ": Invalid data: ", paste0(invalidData, collapse = ", "))
   
   return(all(valid))
+}
+
+get_free_ram <- function(){
+  if(Sys.info()[["sysname"]] == "Windows"){
+    x <- system2("wmic", args =  "OS get FreePhysicalMemory /Value", stdout = TRUE)
+    x <- x[grepl("FreePhysicalMemory", x)]
+    x <- gsub("FreePhysicalMemory=", "", x, fixed = TRUE)
+    x <- gsub("\r", "", x, fixed = TRUE)
+    as.integer(x)
+  } else {
+    stop("Only supported on Windows OS")
+  }
 }
 
 ######################## nlInit ###################################

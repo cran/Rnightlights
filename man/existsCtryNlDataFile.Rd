@@ -4,7 +4,7 @@
 \alias{existsCtryNlDataFile}
 \title{Check if a country admin level data file exists}
 \usage{
-existsCtryNlDataFile(ctryCode, admLevel,
+existsCtryNlDataFile(ctryCode = NULL, admLevel,
   gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
 }
 \arguments{
@@ -27,7 +27,7 @@ Check if a country admin level data file exists. Stats are calculated
 \examples{
 ctryCode <- "KEN"
 admLevel <- "KEN_adm0"
-message("Data file for ", ctryCode, 
+message(Sys.time(), ": Data file for ", ctryCode, 
     ifelse(Rnightlights:::existsCtryNlDataFile(ctryCode, admLevel), 
         " FOUND", " NOT FOUND"))
 
