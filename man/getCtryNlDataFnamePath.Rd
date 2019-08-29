@@ -5,7 +5,8 @@
 \title{Construct the full path to save the file containing the country data}
 \usage{
 getCtryNlDataFnamePath(ctryCode = NULL, admLevel,
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{\code{character string} The ctryCode of interest}
@@ -13,6 +14,8 @@ getCtryNlDataFnamePath(ctryCode = NULL, admLevel,
 \item{admLevel}{\code{character string} The admin level of interest}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }
@@ -26,7 +29,6 @@ Construct the full path to save the file containing the country data. Note
 }
 \examples{
 #get the full path to the file containing data for KEN counties
-getCtryNlDataFnamePath("KEN", "KEN_adm0")
+Rnightlights:::getCtryNlDataFnamePath("KEN", "KEN_adm0")
 
-#@export only due to exploreData() shiny app
 }

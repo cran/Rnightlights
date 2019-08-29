@@ -4,9 +4,10 @@
 \alias{ZonalPipe}
 \title{Create a zonal file if it does not exist and calculate the zonal stats}
 \usage{
-ZonalPipe(ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r,
-  path.out.shp, zone.attribute, nlStats,
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
+ZonalPipe(ctryCode, admLevel, ctryPoly, nlType, configName, path.in.shp,
+  path.in.r, path.out.r, path.out.shp, zone.attribute, nlStats,
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{the ctryCode of interest}
@@ -14,6 +15,10 @@ ZonalPipe(ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r,
 \item{admLevel}{The country admin level of interest}
 
 \item{ctryPoly}{the SpatialPolygonsDataFrame country polygon to process}
+
+\item{nlType}{character The nlType of interest}
+
+\item{configName}{character the type of raster being processed}
 
 \item{path.in.shp}{The path to the country shapefile}
 
@@ -28,6 +33,8 @@ ZonalPipe(ctryCode, admLevel, ctryPoly, path.in.shp, path.in.r, path.out.r,
 \item{nlStats}{The stats to calculate}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }

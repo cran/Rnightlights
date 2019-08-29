@@ -5,7 +5,8 @@
 \title{Save a data frame of a country's data to the appropriate location}
 \usage{
 saveCtryNlData(ctryNlDataDF, ctryCode = NULL, admLevel,
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryNlDataDF}{dataframe with the country data to save}
@@ -15,6 +16,8 @@ saveCtryNlData(ctryNlDataDF, ctryCode = NULL, admLevel,
 \item{admLevel}{the country admin level to process}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }

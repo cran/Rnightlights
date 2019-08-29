@@ -5,11 +5,16 @@
 \title{Returns nightlight statistics for the given ctryCode and nlType in the given nPeriods}
 \usage{
 getCtryNlData(ctryCode = NULL, admLevel, nlTypes, nlPeriods,
-  nlStats = pkgOptions("nlStats"), ignoreMissing = NULL,
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL,
+  nlStats = pkgOptions("nlStats"), ignoreMissing = FALSE,
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL,
   downloadMethod = pkgOptions("downloadMethod"),
   cropMaskMethod = pkgOptions("cropMaskMethod"),
-  extractMethod = pkgOptions("extractMethod"), source = "local", ...)
+  extractMethod = pkgOptions("extractMethod"), configNames,
+  multiTileStrategy = pkgOptions("multiTileStrategy"),
+  multiTileMergeFun = pkgOptions("multiTileMergeFun"),
+  removeGasFlares = pkgOptions("removeGasFlares"), source = "local",
+  ...)
 }
 \arguments{
 \item{ctryCode}{the ISO3 code of the country. Only 1 country can be 
@@ -40,6 +45,8 @@ found in the data file.
 
 \item{gadmVersion}{The GADM version to use}
 
+\item{gadmPolyType}{The format of polygons to download from GADM}
+
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 
 \item{downloadMethod}{The method used to download polygons}
@@ -48,6 +55,14 @@ found in the data file.
 
 \item{extractMethod}{The method used to extract data and perform calculations
 on the satellite raster}
+
+\item{configNames}{character the types of raster being processed}
+
+\item{multiTileStrategy}{character How to handle multiple tiles per nlPeriod}
+
+\item{multiTileMergeFun}{character The function to use to merge tiles}
+
+\item{removeGasFlares}{logical Whether to perform gas flare removal pre-processing}
 
 \item{source}{"local" or "remote" Whether to download and process the
 data locally or to download the pre-processed data from a remote 

@@ -4,17 +4,31 @@
 \alias{getCtryRasterOutputFnamePath}
 \title{Get the full path to the file where the cropped VIIRS country raster is stored.}
 \usage{
-getCtryRasterOutputFnamePath(ctryCode, nlType, nlPeriod,
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
+getCtryRasterOutputFnamePath(ctryCode, nlType, configName,
+  multiTileStrategy = pkgOptions("multiTileStrategy"),
+  multiTileMergeFun = pkgOptions("multiTileMergeFun"),
+  removeGasFlares = pkgOptions("removeGasFlares"), nlPeriod,
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{the ctryCode of interest}
 
 \item{nlType}{the nlType of interest}
 
+\item{configName}{character the type of raster being processed}
+
+\item{multiTileStrategy}{character How to handle multiple tiles per nlPeriod}
+
+\item{multiTileMergeFun}{character The function to use to merge tiles}
+
+\item{removeGasFlares}{logical Whether to perform gas flare removal pre-processing}
+
 \item{nlPeriod}{the nlPeriod of interest}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{The path to a custom polygon as an alternative
 to using GADM polygons}

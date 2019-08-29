@@ -1,6 +1,6 @@
 Package: Rnightlights
-Version: 0.2.3
-Date: 2018-10-11
+Version: 0.2.4
+Date: 2019-08-29
 Title: Satellite Nightlight Data Extraction
 Description: Extracts raster and zonal statistics
     from satellite nightlight rasters downloaded from the United States 
@@ -15,19 +15,21 @@ Description: Extracts raster and zonal statistics
     graphing, mapping and clustering regional data.
 Authors@R: c(person(given="Christopher", family="Njuguna", role=c("aut", "cre", "cph"), email="chris.njuguna@gmail.com"))
 License: GPL-3
-Imports: cleangeo, compiler, data.table, doSNOW, dplyr, ff, ffbase,
-        foreach, lubridate, methods, raster, readr, reshape2, rgdal,
-        rgeos, R.utils, rvest, rworldmap, settings, snow, sp, stats,
-        stringr, utils, xml2
+ByteCompile: true
+Encoding: UTF-8
+Imports: cleangeo, compiler, curl, data.table, doSNOW, dplyr, ff,
+        ffbase, foreach, lubridate, methods, raster, readr, reshape2,
+        rgdal, rgeos, R.utils, rvest, rworldmap, settings, snow, sp,
+        stats, stringr, utils, xml2
 Suggests: dendextend, DT, gdalUtils, ggdendro, ggplot2, leaflet,
         plotly, RColorBrewer, shiny, shinydashboard, testthat
 SystemRequirements: aria2, curl, gdal, wget
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 BugReports: https://github.com/chrisvwn/Rnightlights/issues
 URL: https://github.com/chrisvwn/Rnightlights
 NeedsCompilation: no
-Packaged: 2018-10-12 21:04:57 UTC; chris
+Packaged: 2019-08-29 13:18:50 UTC; chris
 Author: Christopher Njuguna [aut, cre, cph]
 Maintainer: Christopher Njuguna <chris.njuguna@gmail.com>
 Repository: CRAN
-Date/Publication: 2018-10-13 23:00:03 UTC
+Date/Publication: 2019-08-29 15:20:04 UTC

@@ -53,7 +53,7 @@ setupDataPath <- function(newDataPath=tempdir(), ...)
         else if (ans == 2)
           dataPath <- tryCatch(
             {
-              path <- tcltk::tk_choose.dir(getNlDataPath())
+              path <- tcltk::tk_choose.dir("~")
             }, 
             error=function(ex) 
             {
@@ -111,17 +111,17 @@ setupDataPath <- function(newDataPath=tempdir(), ...)
         else if (ans == 2)
         {
           dataPath <- tryCatch(
-            {
-              path <- tcltk::tk_choose.dir("~/")
-            }, 
-            error=function(ex) 
-            {
-              path <- readline("Please enter the directory path: ")
-              if (dir.exists(path))
-                return (path)
-              else
-                stop(path, " not found")
-            })
+          {
+            path <- tcltk::tk_choose.dir(getNlDataPath())
+          }, 
+          error=function(ex) 
+          {
+            path <- readline("Please enter the directory path: ")
+            if (dir.exists(path))
+              return (path)
+            else
+              stop(path, " not found")
+          })
           
           if (is.null(dataPath) || is.na(dataPath))
           {
@@ -355,14 +355,19 @@ setNlDataPath <- function(dataPath)
   
   #If dataPath was created
   if(!is.null(getNlDataPath()))
-  if(path.expand(getNlDataPath()) == path.expand(dataPath))
-  {
-    # Add a README.txt file, if missing.
-    addREADME(to=file.path(dataPath, dataDirName))
-    
-    #create the package dirs
-    createNlDataDirs()
-  }
+    if(path.expand(getNlDataPath()) == path.expand(dataPath))
+    {
+      # Add a README.txt file, if missing.
+      addREADME(to=file.path(dataPath, dataDirName))
+      
+      #add data-version.txt if a new install
+      #also prevents upgrade from running first time
+      if(!isMove && !file.exists(file.path(dataPath,dataDirName,"data-version.txt")))
+        setDataVersion(path=file.path(dataPath, dataDirName), pkgVersion = as.character(utils::packageDescription("Rnightlights")$Version))
+      
+      #create the package dirs
+      createNlDataDirs()
+    }
   
   getNlDataPath()
 } # setNlDataPath()
@@ -431,7 +436,10 @@ getNlDataPath <- function()
 #'     directory or a previously used data path. It will only delete if it
 #'     has the default folder structure of a root data path.
 #'
-#' @param dataPath The path to the root folder to be deleted
+#' @param dataPath \code{character} The path to the root folder to be deleted
+#' 
+#' @param confirm \code{logical} Used when in non-interactive mode. If missing or FALSE
+#'     the operation will be aborted.
 #'     
 #' @return None
 #'
@@ -440,18 +448,27 @@ getNlDataPath <- function()
 #'   Rnightlights:::removeDataPath(getNlDataPath())
 #'   }
 #'     
-removeDataPath <- function(dataPath = file.path(getNlDataPath(), ".Rnightlights"))
+removeDataPath <- function(dataPath = file.path(getNlDataPath(), ".Rnightlights"), confirm=FALSE)
 {
   if(basename(dataPath) != ".Rnightlights")
     stop(Sys.time(), ": You must specify the full path including .Rnightlights")
   
-  menuPrompt <- paste0("You are about to remove the Rnightlights data folder in \n", dataPath, ". Do you want to continue?")
-  
-  response <- utils::menu(choices = c("Yes", "no"), graphics = F, title = menuPrompt)
+  if(interactive())
+  {
+    menuPrompt <- paste0("You are about to remove the Rnightlights data folder in \n", dataPath, ". Do you want to continue?")
+    
+    response <- utils::menu(choices = c("Yes", "no"), graphics = F, title = menuPrompt)
+  }else
+  {
+    response <- 0
+    
+    if(confirm)
+      response <- 1
+  }
   
   if(response == "1")
   {
-    #file.remove(dataPath)
+    unlink(dataPath, recursive = T, force = T)
     message(Sys.time(), ": Removed dataPath")
   }
   else if(response == "2")
@@ -490,6 +507,34 @@ addREADME <- function(to=getNlDataPath())
   }
 } # addREADME()
 
+######################## setDataVersion ###################################
+
+#' Add data version file to the root data path
+#'
+#' Add data version file to the root data path
+#'
+#' @param path The folder to add the README file to
+#' 
+#' @param pkgVersion The version of the package
+#'     
+#' @return None
+#'
+#' @examples
+#'   \dontrun{
+#'   Rnightlights:::setDataVersion(version="0.2.4")
+#'   }
+#'     
+setDataVersion <- function(path=getNlDataPath(), pkgVersion = utils::packageDescription("Rnightlights")$Version)
+{
+  # Add a data-version.txt to dataPath (to show the data directory version)
+  filename <- "data-version.txt"
+  
+  pathnameD <- file.path(path, filename)
+  
+  cat(pkgVersion, file = pathnameD)
+  
+} # setDataVersion()
+
 ######################## createNlDataDirs ###################################
 
 #' Create required data subdirectories in the root data path
@@ -514,8 +559,8 @@ createNlDataDirs <- function()
   if(!dir.exists(getNlDir("dirNlTiles")))
     dir.create(getNlDir("dirNlTiles"))
   
-  if(!dir.exists(getNlDir("dirNlTiles")))
-    dir.create(getNlDir("dirNlTiles"))
+  if(!dir.exists(getNlDir("dirNlGasFlares")))
+    dir.create(getNlDir("dirNlGasFlares"))
   
   if(!dir.exists(getNlDir("dirNlData")))
     dir.create(getNlDir("dirNlData"))
@@ -571,7 +616,7 @@ getNlDir <- function(dirName)
   if(is.null(dataPath))
   {
     setupDataPath()
-
+    
     dataPath <- getNlDataPath()
   }
   

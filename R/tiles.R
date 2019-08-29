@@ -1,3 +1,62 @@
+######################## getAllNlConfigNames ###################################
+
+#' Generate a list of all possible configNames for a given nlType
+#'
+#' Generate a list of all possible configNames for a given nlType
+#'
+#' @param nlType if present show only configNames matching the nlType
+#'
+#' @examples
+#' getAllNlConfigNames("OLS.Y")
+#'  #returns '"cf_cvg", "avg_vis", "stable_lights"'
+#'  
+#' @export
+getAllNlConfigNames <- function(nlType)
+{
+  allConfigNames <- list(
+    "OLS.Y" = c("cf_cvg", "avg_vis", "stable_lights", "pct_lights", "avg_lights_x_pct"),
+    "VIIRS.D" = c("vcmcfg", "vcmsl"),
+    "VIIRS.M" = c("vcmcfg", "vcmsl"),
+    "VIIRS.Y" = c("vcm-orm", "vcm-orm-ntl", "vcm-ntl"))
+  
+  if(missing(nlType))
+    return(allConfigNames)
+  
+  sapply(nlType, function(x)
+  {
+    pos <- grep(pattern = paste0("^",x,"$"), x = names(allConfigNames))
+    
+    if(length(pos) == 0)
+      return(NA)
+    
+    allConfigNames[pos]
+  }, USE.NAMES = F)
+}
+
+######################## validNlConfigName ###################################
+
+#' Check if a configName is valid for a given nlType
+#'
+#' Check if a configName is valid for a given nlType
+#' 
+#' @param configName the raster in use
+#'
+#' @param nlType types of nightlight to check
+#'
+#' @return logical a vector of logical values
+#'
+#' @examples
+#' Rnightlights:::validNlConfigName("VCMCFG", "OLS.Y")
+#'  #returns FALSE
+#'  
+#' Rnightlights:::validNlConfigName("VCMCFG", "VIIRS.M")
+#'  #returns TRUE
+#'
+validNlConfigName <- function(configName, nlType)
+{
+  toupper(configName) %in% toupper(unlist(getAllNlConfigNames(nlType)))
+}
+
 ######################## downloadNlTiles ###################################
 
 #' Download the listed tiles for a given nlType in a given nlPeriod
@@ -5,6 +64,8 @@
 #' Download the listed tiles for a given nlType in a given nlPeriod
 #'
 #' @param nlType character The nightlight type
+#' 
+#' @param configName character the type of raster being processed
 #'
 #' @param nlPeriod character The nlPeriod to process in the appropriate 
 #'     format
@@ -12,7 +73,9 @@
 #' @param tileList integer vector or character vector of digits containing 
 #'     valid tile numbers as obtained by tileName2Idx for VIIRS. Ignore for 
 #'     nlType=="OLS"
-#'
+#'     
+#' @param multiTileStrategy character How to handle multiple tiles per nlPeriod
+#' 
 #' @return TRUE/FALSE if the download was successful
 #' 
 #' @examples
@@ -33,7 +96,7 @@
 #' 
 #' #returns TRUE if the download was successful or tile is cached locally
 #'
-downloadNlTiles <- function(nlType, nlPeriod, tileList)
+downloadNlTiles <- function(nlType, configName=pkgOptions(paste0("configName_", nlType)), nlPeriod, tileList, multiTileStrategy = pkgOptions("multiTileStrategy"))
 {
   if(missing(nlType))
     stop(Sys.time(), ": Missing required parameter nlType")
@@ -57,7 +120,11 @@ downloadNlTiles <- function(nlType, nlPeriod, tileList)
   
   #ensure we have all required tiles
   if(stringr::str_detect(nlType, "OLS"))
-    success <- success && downloadNlTilesOLS(nlPeriod)
+    success <- success && downloadNlTilesOLS(nlPeriod = nlPeriod,
+                                             downloadMethod = pkgOptions("downloadMethod"),
+                                             nlType = nlType,
+                                             configName = configName,
+                                             multiTileStrategy = multiTileStrategy)
   else if(stringr::str_detect(nlType, "VIIRS"))
     for (tile in tileList)
     {
@@ -66,7 +133,7 @@ downloadNlTiles <- function(nlType, nlPeriod, tileList)
       message(Sys.time(), ": Downloading tile: ", paste0(nlPeriod, nlTile))
       
       #download tile
-      success <- success && downloadNlTilesVIIRS(nlPeriod, nlTile, nlType = nlType)
+      success <- success && downloadNlTilesVIIRS(nlPeriod = nlPeriod, tileNum = nlTile, nlType = nlType, configName = configName)
     }
   
   return (success)
@@ -149,7 +216,7 @@ getNlTiles <- function(nlType)
   #6 nightlight tiles named by top-left geo coordinate numbered from left-right & top-bottom
   #creates columns as strings. createSpPolysDF converts relevant columns to numeric
   nlTiles <- data.frame(
-    id=c(1,2,3,4,5,6,7),
+    id=c(1,1,2,3,4,5,6),
           type=c("OLS","VIIRS","VIIRS","VIIRS","VIIRS","VIIRS","VIIRS"),
           name=c("DUMMY", "75N180W", "75N060W", "75N060E", "00N180W", "00N060W", "00N060E"),
           minx=c(-1, -180, -60, 60, -180, -60, 60), maxx=c(-1, -60, 60, 180, -60, 60, 180),
@@ -190,7 +257,7 @@ createNlTilesSpPolysDF <- function()
     nlTiles <- getNlTiles(grep("VIIRS", getAllNlTypes(), value = T)[1])
   }
   
-  wgs84 <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+  wgs84 <- getCRS()
   
   #convert nlTiles min/max columns to numeric
   for (cIdx in grep("id|min|max", names(nlTiles))) nlTiles[,cIdx] <- as.numeric(as.character(nlTiles[, cIdx]))
@@ -266,17 +333,10 @@ plotCtryWithTilesVIIRS <- function(ctry)
   if(!is.character(ctry))
     stop(Sys.time(), ": The parameter you supplied needs to be type character")
   
-  wgs84 <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+  wgs84 <- getCRS()
   
   #if the map variable does not exist
-  if(!exists("map"))
-  {
-    #get the map from the rworldmap package
-    map <- rworldmap::getMap()
-    
-    #some rworldmap polygons have problems. Rectify them to allow plotting without errors
-    map <- cleangeo::clgeo_Clean(map)
-  }
+  map <- getWorldMap()
   
   #if the tiles spatial polygons dataframe does not exist create it
   if(!exists("tilesSpPolysDFs"))
@@ -443,14 +503,9 @@ mapCtryPolyToTilesVIIRS <- function(ctryCodes="all", omitCountries=pkgOptions("o
   }
   
   #if the rworldmap::getMap() hasn't been loaded, load it
-  if (!exists("map"))
-  {
-    map <- rworldmap::getMap()
-    
-    map <- cleangeo::clgeo_Clean(sp = map)
-  }
+  map <- getWorldMap()
   
-  wgs84 <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+  wgs84 <- getCRS()
   
   #get the indices of the country polygons from the rworldmap
   ctryCodeIdx <- which(map@data$ISO3 %in% ctryCodes)
@@ -524,13 +579,9 @@ getTilesCtryIntersectVIIRS <- function(ctryCode)
 
   ctryISO3 <- ctryCode
  
-  if(!exists("map"))
-  {
-    map <- rworldmap::getMap()
-    map <- cleangeo::clgeo_Clean(map)
-  }
+  map <- getWorldMap()
   
-  wgs84 <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+  wgs84 <- getCRS()
   
   #print(ctryISO3)
   
@@ -660,7 +711,7 @@ tileIdx2Name <- function(tileNum, nlType)
   nlType <- toupper(nlType)
   
   #return (nlTiles[tileNum, "name"])
-  return(nlTiles[tileNum, "name"])
+  return(nlTiles[as.numeric(tileNum), "name"])
 }
 
 ######################## tilesPolygonIntersectVIIRS ###################################
@@ -704,7 +755,7 @@ tilesPolygonIntersectVIIRS <- function(shpPolygon)
   if (!exists("nlTiles"))
     nlTiles <- getNlTiles(grep("VIIRS", getAllNlTypes(), value = TRUE)[1])
   
-  wgs84 <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+  wgs84 <- getCRS()
   
   raster::projection(shpPolygon) <- sp::CRS(wgs84)
   

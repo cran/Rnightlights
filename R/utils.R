@@ -19,11 +19,11 @@
 #' @examples
 #' 
 #' \donttest{
-#' Rnightlights:::allValid(c("KEZ", "UGA", "RWA", "TZA"), Rnightlights:::validCtryCodes)
+#'   Rnightlights:::allValid(c("KEZ", "UGA", "RWA", "TZA"), Rnightlights:::validCtryCodes)
 #' }
 #'  
 #' \donttest{
-#' Rnightlights:::allValid(c("2012", "2015"), validNlPeriods, "OLS.Y")
+#'   Rnightlights:::allValid(c("2012", "2015"), validNlPeriods, "OLS.Y")
 #' }
 #'
 allValid <- function(testData, testFun, ...)
@@ -38,37 +38,98 @@ allValid <- function(testData, testFun, ...)
   return(all(valid))
 }
 
-get_free_ram <- function(){
-  if(Sys.info()[["sysname"]] == "Windows"){
+######################## getFreeRAM ###################################
+
+#' Detect the amount of available RAM on the computer
+#' 
+#' Detect the amount of available RAM on the computer for dynamic
+#'     configuration of available memory
+#' 
+#' @export
+getFreeRAM <- function()
+{
+  if(Sys.info()[["sysname"]] == "Windows")
+  {
     x <- system2("wmic", args =  "OS get FreePhysicalMemory /Value", stdout = TRUE)
     x <- x[grepl("FreePhysicalMemory", x)]
     x <- gsub("FreePhysicalMemory=", "", x, fixed = TRUE)
-    x <- gsub("\r", "", x, fixed = TRUE)
-    as.integer(x)
-  } else {
-    stop("Only supported on Windows OS")
+    freeMem <- gsub("\r", "", x, fixed = TRUE)
+    
+    freeMem <- as.integer(freeMem)
+    
+  } else if(Sys.info()[["sysname"]] == "macOS")
+  {
+    freeBlocks <- system2("vm_stat | grep free | awk '{ print $3 }' | sed 's/\\.//'", stdout = TRUE)
+    speculativeBlocks <- system2("vm_stat | grep speculative | awk '{ print $3 }' | sed 's/\\.//'")
+    freeMem <- (freeBlocks + speculativeBlocks)*4096
+    
+    freeMem <- as.integer(freeMem)
+    
+  } else if(Sys.info()[["sysname"]] == "Linux")
+  {
+    x <- system2('free', stdout = TRUE)
+    
+    x <- strsplit(x, "\\s+")
+    
+    freeCol <- grep("free", unlist(x[1]), fixed = T)
+    cacheCol <- grep("buff", unlist(x[1]), fixed = T)
+    
+    free <- unlist(x[2])[freeCol]
+    cache <- unlist(x[2])[cacheCol]
+    
+    freeMem <- as.integer(free) + as.integer(cache)
+  } else
+  {
+    message("Cannot determine free RAM on your OS. Defaulting to conservative 1GB")
+    
+    freeMem <- 1048576
   }
+  
+  return(freeMem)
 }
 
-######################## nlInit ###################################
+######################## getBatchBytes ###################################
 
-#' Initialize some important variables and create directory structure
-#'
-#' Initialize some important variables and create directory structure
-#'
-#' @param omitCountries character string/vector CtryCodes to exclude from processing
+#' Calculate the RAM to provide to the package for gdal calculations
 #' 
-#' @return NULL
+#' Calculate the RAM to provide to the package to calculate when
+#'     pkgOption("extractMethod") == "gdal"
 #'
-#' @examples
-#'
-#'  \dontrun{
-#'  Rnightlights:::nlInit()
-#'  }
-#'
-nlInit <- function(omitCountries="none")
+#' @param freeRAM the amount of available RAM to consider
+#' 
+#' @export
+getBatchBytes <- function(freeRAM = pkgOptions("batchBytes"))
 {
+  sysFreeRAM <- getFreeRAM() * 2^10
+  
+  if(grepl("%", freeRAM))
+  {
+    freeRAM <- as.numeric(gsub("%","",freeRAM))
+    
+    freeRAM <- freeRAM/100
+    
+    freeRAM <- freeRAM*sysFreeRAM
+  } else if(grepl("KB", freeRAM))
+  {
+    freeRAM <- as.numeric(gsub("KB","",freeRAM))
+    
+    freeRAM <- freeRAM*2^10
+  } else if(grepl("MB", freeRAM))
+  {
+    freeRAM <- as.numeric(gsub("MB","",freeRAM))
+    
+    freeRAM <- freeRAM*2^20
+  } else if(grepl("GB", freeRAM))
+  {
+    freeRAM <- as.numeric(gsub("GB","",freeRAM))
+    
+    freeRAM <- freeRAM*2^30
+  }
+  
+  if(freeRAM > sysFreeRAM)
+    freeRAM <- 0.1 * sysFreeRAM * 2^20
 
+  return(freeRAM)
 }
 
 ######################## nlCleanup ###################################
@@ -77,6 +138,10 @@ nlInit <- function(omitCountries="none")
 #'
 #' Clean up the environment after processing (Not yet implemented)
 #'
+#' @param temp boolean should the temp folder be cleared?
+#' 
+#' @param tileCache boolean should unnecessary tiles be cleared?
+#' 
 #' @return NULL
 #'
 #' @examples
@@ -84,259 +149,116 @@ nlInit <- function(omitCountries="none")
 #'  Rnightlights:::nlCleanup()
 #'  }
 #'
-nlCleanup <- function()
+nlCleanup <- function(temp=TRUE, tileCache=FALSE)
 {
   #remove any global vars we created in .onLoad
   #suppressWarnings(rm(map, shpTopLyrName, wgs84, nlTiles, tilesSpPolysDFs))
-  
+ 
+  #message("Cleaning up the environment")
+   
   #the destructor
   
   #del temp files used in this session in the nlTempDir
-  unlink(list.files(getNlDir("dirNlTemp")), recursive = T, force = T)
+  unlink(list.files(getNlDir("dirNlTemp"), full.names = TRUE), recursive = TRUE, force = TRUE)
   
   #del temp dataPath directory if it was created
   #if(getNlDataPath() == tempdir())
   #  unlink(file.path(tempdir(), ".Rnightlights"), recursive = TRUE, force = TRUE)
 }
 
-myquantile <- function(rast)
-{
-  
-}
+######################## printCredits ###################################
 
-######################## writeNightlightsMap ###################################
-
-writeNightlightsMap <- function()
+#' Format credits to print to the console
+#'
+#' Format credits to print to the console
+#'
+#' @param credits character a single length character vector with newlineChar
+#'     used to separate lines. Two consecutive newlineChara are used to
+#'     put in a horizontal divider
+#' 
+#' @param newLineChar character the character/sequence used to split the 
+#'     credits into new lines
+#'     
+#' @param surroundChar character the character to use as a decoration
+#' 
+#' @param horzPadding integer the number of blank spaces between text and
+#'     the surrounding text horizontally
+#'     
+#' @param vertPadding integer the number of blank spaces between text and
+#'     the surrounding text vertically
+#'     
+#' @param horzWidth integer the width of the decoration horizontally
+#'
+#' @param vertWidth integer the width of the decoration vertically
+#'  
+#' @return character a formatted credits character vector
+#' 
+#' @examples
+#'   printCredits(credits="DMSP data collected by US Air Force Weather Agency|
+#'   Image and data processing by NOAA's National Geophysical Data Center|
+#'   (https://www.ngdc.noaa.gov/eog/download.html)||
+#'   Maps distributed by GADM|(https://gadm.org)", newLineChar="|")
+#' 
+#' @export
+printCredits <- function(credits, newLineChar="\n", surroundChar = "*", horzPadding = 1, vertPadding = 1, horzWidth = 3, vertWidth = 2)
 {
-  tplHead <- "
-  MAP
-  IMAGETYPE  PNG
-  EXTENT	-180 -90 180 90
-  SIZE		800 600
-  SHAPEPATH      /var/www/cgi-bin
-  IMAGECOLOR     \"#ffffffff\"
-  TRANSPARENT 	TRUE
-  SHAPEPATH	/btrfs/shiny_nightlights/outputrasters
+  width <- getOption("width")
   
-  PROJECTION
-  \"init=epsg:4326\"
-  END
+  if(newLineChar != "\n")
+    credits <- gsub(pattern = "\n", replacement = "", x = credits)
   
-  OUTPUTFORMAT
-  NAME GEOTIFF
-  DRIVER GDAL/GTiff
-  MIMETYPE image/tiff
-  IMAGEMODE RGB
-  EXTENSION tif
-  END
+  credits <- unlist(strsplit(x = credits, split = newLineChar, fixed = T))
   
-  WEB
-  METADATA
-  \"wms_title\" \"Nightlight Rasters\"
-  \"wms_onlineresource\" \"http://localhost/cgi-bin/mapserv?map=nightlights_wms.map\"
-  \"wms_description\" \"nightlights\"
-  \"wms_name\" \"Nightlights\"
-  \"wms_label\" \"Nightlights\"
-  \"wms_srs\" \"EPSG:3857\"
-  \"wms_extent\" \"-180 -90 180 90\"
-  \"wms_formats\" \"GEOTIFF\"
-  \"wms_enable_request\" \"*\"
-  END
-  END"
+  sideFrame <- paste(rep(surroundChar, horzWidth), collapse = "")  
   
-  tplLayer <- "
-  LAYER
-  NAME	<VAL_NAME>
+  longestLine <- max(sapply(credits, nchar))
   
-  METADATA
-  \"wms_title\"		\"<VAL_NAME>\"
-  \"wms_enable_request\"	\"*\"
-  \"wms_srs\"			\"EPSG:4326\"
-  \"wms_extent\"		\"<VAL_EXTENT>\"
-  \"wms_include_items\"	\"all\"
-  \"wms_dataurl_format\"	\"text/html\"
-  END
+  fullHorzFrame <- paste(rep(surroundChar, longestLine + horzPadding * 2 + horzWidth * 2), collapse = "")
   
-  EXTENT	<VAL_EXTENT>
-  DATA	\"<VAL_NAME>.tif\"
-  #    TILEINDEX	/btrfs/shiny_nightlights/outputrasters/nightlights_201401.tif
-  #    TILEITEM	\"location\"
-  STATUS	OFF
-  TYPE	RASTER
+  emptyHorzFrame <- paste0(sideFrame, paste0(rep(" ", longestLine + horzPadding * 2), collapse=""), sideFrame)
   
-  DUMP TRUE
-  PROJECTION
-  \"init=epsg:4326\"
-  END
+  header <- rep(fullHorzFrame, vertWidth)
   
-  CLASSITEM \"[pixel]\"
+  footer <- header
   
-  CLASS
-  NAME \"NODATA\"
-  EXPRESSION ([pixel] = <VAL_NODATA>)
-  
-  STYLE
-  OPACITY 0
-  END
-  END
-  
-  #     CLASS
-  #       NAME DEC0
-  #       EXPRESSION ([pixel] > <VAL_NODATA> AND [pixel] < <VAL_DEC0>)
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#000000\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC1
-  #       EXPRESSION ([pixel] >= <VAL_DEC0> AND [pixel] < <VAL_DEC1> )
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#5A5A5A\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC2
-  #       EXPRESSION ([pixel] >= <VAL_DEC1>  AND [pixel] < <VAL_DEC2>  )
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#7B7B7B\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC3
-  #       EXPRESSION ([pixel] >= <VAL_DEC2> AND [pixel] < <VAL_DEC3> )
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#949494\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC4
-  #       EXPRESSION ([pixel] >= <VAL_DEC3> AND [pixel] < <VAL_DEC4> )
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#A8A8A8\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC5
-  #       EXPRESSION ([pixel] >= <VAL_DEC4> AND [pixel] < <VAL_DEC5> )
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#BABABA\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC6
-  #       EXPRESSION ([pixel] >= <VAL_DEC5> AND [pixel] < <VAL_DEC6> )
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#CACACA\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC7
-  #       EXPRESSION ([pixel] >= <VAL_DEC6> AND [pixel] < <VAL_DEC7> )
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#D9D9D9\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC8
-  #       EXPRESSION ([pixel] >= <VAL_DEC7> AND [pixel] < <VAL_DEC8>)
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#E6E6E6\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC9
-  #       EXPRESSION ([pixel] >= <VAL_DEC9> AND [pixel] < <VAL_DEC10> )
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#F3F3F3\"
-  #       END
-  #     END
-  #
-  #     CLASS
-  #       NAME DEC10
-  #       EXPRESSION ([pixel] > <VAL_DEC10>)
-  #
-  #       STYLE
-  #       OPACITY 100
-  #       COLOR \"#FFFFFF\"
-  #       END
-  #     END
-  END # MODIS raster layer ends here"
-  
-  fList <- dir(path = pkgOptions("dirNlTiles"), pattern = "*.tif$",full.names = T)
-  
-  layers <- NULL
-  nodata <- "-1.69999999999999994e+308"
-  
-  tplMap <- tplHead
-  tplLayers <- ""
-  
-  for (f in fList)
-  {
-    tplLyr <- tplLayer
+  mainBody <- sapply(credits, USE.NAMES = F, function(x){
+    leftPad <- floor((longestLine-nchar(x))/2)
     
-    message(f)
-    rast <- raster::raster(f)
-    e <- raster::extent(rast)
-    ext <- paste0(e@xmin, " ", e@ymin, " ", e@xmax, " ", e@ymax )
-    qs <- myquantile(rast)
-    q2 <- qs[1]
-    q98 <- qs[2]
+    rightPad <- ifelse((longestLine-nchar(x)) %% 2 == 0, leftPad, leftPad + 1)
     
-    if (is.na(q2))
-      q2 <- 0
+    leftSpace <- paste(rep(" ", leftPad+horzPadding), collapse = "")
     
-    if (is.na(q98))
-      q98 <- 0
+    rightSpace <- paste(rep(" ", rightPad+horzPadding), collapse = "")
     
-    deciles <- seq(q2, q98, length.out = 11)
-    
-    fname <- unlist(stringr::str_split(f, "/"))
-    fname <- data.table::last(fname)
-    lyrName <- substr(fname,1,10)
-    
-    tplLyr <- stringr::str_replace_all(tplLyr,  "<VAL_NAME>", lyrName)
-    tplLyr <- stringr::str_replace_all(tplLyr,  "<VAL_NODATA>", nodata)
-    tplLyr <- stringr::str_replace_all(tplLyr,  "<VAL_EXTENT>", ext)
-    
-    for (i in 1:11)
+    # print((longestLine-nchar(x)))
+    # print(paste0(leftPad, ":", rightPad))
+    out <- if(!grepl(pattern = "^\\s*$", x = x))
     {
-      decval <- paste0("<VAL_DEC", i-1,">")
-      tplLyr <- stringr::str_replace_all(tplLyr,  decval, deciles[i])
+      paste0(sideFrame, leftSpace, x, rightSpace, sideFrame)
+    }else
+    {
+      if(vertWidth > 0)
+        c(emptyHorzFrame, fullHorzFrame, emptyHorzFrame)
+      else
+        fullHorzFrame
     }
+    # message("'", leftSpace,"'")
+    # message("'", x, "'")
+    # message("'", rightSpace,"'")
     
-    tplLayers <- paste0(tplLayers, "\n", tplLyr)
-  }
+    #paste0(out,"\n")
+  })
   
-  tplMap <- paste0(tplMap, "\n", tplLayers, "\nEND #END MAP")
+  credits <- c(header, emptyHorzFrame, unlist(mainBody), emptyHorzFrame, footer)
   
-  readr::write_file(tplMap, "test.map")
+  #cat(paste(credits, collapse = "\n"))
+  
+  credits <- sapply(credits, function(cred)
+  {
+    ws <- paste(rep(" ", floor((width - nchar(cred))/2)), collapse = "")
+    
+    paste(ws, cred, sep = "", collapse = "")
+  }, USE.NAMES = F)
+  
+  packageStartupMessage(paste(credits, collapse = "\n"))
 }

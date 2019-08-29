@@ -1,6 +1,19 @@
-#set the dataPath to tempdir() to ensure a new environment
-#thus forcing polygon and tile downloads and fresh raster
-#clipping and data extraction
-currDir <- getNlDataPath()
+#test internet availability used by multiple tests
+internetAvailable <- function()
+{
+  curl::has_internet()
+}
 
-tempDir <- setupDataPath(tempdir())
+siteIsAvailable <- function(site)
+{
+  temp <- curl::curl_download(site, "temp.html")
+  
+  if(exists("temp"))
+  {
+    file.remove(temp)
+    
+    return(TRUE)
+  }
+  
+  return(FALSE)
+}

@@ -1,44 +1,70 @@
 .onLoad <- function(libname, pkgname)
 {
+  credits <- "DMSP data collected by US Air Force Weather Agency
+Image and data processing by NOAA's National Geophysical Data Center
+(https://www.ngdc.noaa.gov/eog/download.html)
 
+Maps distributed by GADM
+(https://gadm.org)"
+  
+  #printCredits(credits)
 }
+
+######################## .RnightlightsENV ###################################
+
+#' A package-wide hidden environment
+#' 
+#' A package-wide hidden environment used to store variables/settings and
+#'     functions to retrieve them
+#' 
+.RnightlightsEnv <- new.env(parent = emptyenv())
+
+
+######################## .onAttach ###################################
 
 .onAttach <- function(libname, pkgname)
 {
+  # Set global variables in .onAttach since we want the package to be
+  #     usable without active loading via library(Rnightlights)
+  #
+  
   #Setup the data path, possibly by prompting the user. if not found
   if(is.null(getNlDataPath()))
     setupDataPath()
   
-  #global constants
-  map <- rworldmap::getMap()
-  map <- cleangeo::clgeo_Clean(map)
-  shpTopLyrName <- "adm0"
-
-  #projection system to use
-  wgs84 <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
-  #ntLtsIndexUrlVIIRS = "https://www.ngdc.noaa.gov/eog/viirs/download_monthly.html"
-  
+  #try to speed up the code
+  #does this work?
+  #also enabled in DESCRIPTION file
   compiler::enableJIT(3)
   
   upgradeRnightlights()
 }
 
-.onDetach <- function(libname)
+.onUnload <- function(libpath)
 {
-  map <- NULL
-  shpTopLyrName <- NULL
-  wgs84 <- NULL
-  nlTiles <- NULL
-  tilesSpPolysDFs <- NULL
-  
-  #remove any global vars we created in .onAttach
-  suppressWarnings(rm(map, shpTopLyrName, wgs84, nlTiles, tilesSpPolysDFs))
-  
-  #cleanup by removing any global vars created etc
-  nlCleanup();
-  compiler::enableJIT(0)
+
 }
 
-.onUnload <- function(libname, pkgname)
+.onDetach <- function(libpath)
 {
+  suppressWarnings(rm(.RnightlightsEnv))
+}
+
+######################## .Last.lib ###################################
+
+#' @export
+.Last.lib <- function(libpath)
+{
+  # Clean up the environment and delete temp files when the package is
+  #     detached.
+  #    
+  #     Use .Last.lib rather than .onDetach or .onUnload which may not be run
+  #     at the end of the session. And rather than reg.finalizer which is
+  #     called when gc() runs which we do not want to happen for nlCleanup()
+  #     especially since we do call gc() in some instances.
+
+  #cleanup by removing any global vars created etc
+  nlCleanup()
+  
+  compiler::enableJIT(0)
 }

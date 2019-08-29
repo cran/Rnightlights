@@ -4,9 +4,14 @@
 \alias{fnAggRadGdal}
 \title{Calculate zonal statistics using GDAL}
 \usage{
-fnAggRadGdal(ctryCode, admLevel, ctryPoly, nlType, nlPeriod,
-  nlStats = pkgOptions("nlStats"), gadmVersion = pkgOptions("gadmVersion"),
-  custPolyPath = NULL)
+fnAggRadGdal(ctryCode, admLevel, ctryPoly, nlType,
+  configName = pkgOptions(paste0("configName_", nlType)),
+  multiTileStrategy = pkgOptions("multiTileStrategy"),
+  multiTileMergeFun = pkgOptions("multiTileMergeFun"),
+  removeGasFlares = pkgOptions("removeGasFlares"), nlPeriod,
+  nlStats = pkgOptions("nlStats"),
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{character string the ISO3 country code to be processed}
@@ -18,11 +23,21 @@ the \code{ctryPoly} given but no checks are made currently.}
 
 \item{nlType}{the nlType of interest}
 
+\item{configName}{character the type of raster being processed}
+
+\item{multiTileStrategy}{character How to handle multiple tiles per nlPeriod}
+
+\item{multiTileMergeFun}{character The function to use to merge tiles}
+
+\item{removeGasFlares}{logical Whether to perform gas flare removal pre-processing}
+
 \item{nlPeriod}{character string the nlPeriod to be processed}
 
 \item{nlStats}{character vector The stats to calculate}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }

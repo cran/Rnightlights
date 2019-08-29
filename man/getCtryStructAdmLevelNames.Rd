@@ -2,10 +2,11 @@
 % Please edit documentation in R/polygons.R
 \name{getCtryStructAdmLevelNames}
 \alias{getCtryStructAdmLevelNames}
-\title{Get the list of admin level names in a polygon shapefile}
+\title{Get the list of admin level names from a ctryStruct file}
 \usage{
 getCtryStructAdmLevelNames(ctryCode = NULL, lowestAdmLevel,
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{\code{character} The ctryCode of the country of interest}
@@ -14,20 +15,23 @@ getCtryStructAdmLevelNames(ctryCode = NULL, lowestAdmLevel,
 
 \item{gadmVersion}{The GADM version to use}
 
+\item{gadmPolyType}{The format of polygons to download from GADM}
+
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }
 \value{
 character vector of admin level names
 }
 \description{
-Get the list of admin level names in a polygon shapefile. It returns
+Get the list of admin level names from a ctryStruct file created from
+    the polygon for speed. It returns:
     all official names starting from 1 to the specified 
     \code{lowestAdmLevel}. If not \code{lowestAdmLevel} is not
     specified, all admin level names are returned
 }
 \examples{
 \dontrun{
-Rnightlights:::getCtryPolyAdmLevelNames("KEN")
+Rnightlights:::getCtryStructAdmLevelNames("KEN")
 #returns vector [1] "County"       "Constituency" "Ward"
 #if KEN shapefile exists otherwise errors
 }

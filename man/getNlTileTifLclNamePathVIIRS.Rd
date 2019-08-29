@@ -4,14 +4,18 @@
 \alias{getNlTileTifLclNamePathVIIRS}
 \title{Constructs the full path used to save/access the decompressed VIIRS .tif file}
 \usage{
-getNlTileTifLclNamePathVIIRS(nlPeriod, tileNum, nlType)
+getNlTileTifLclNamePathVIIRS(nlType = "VIIRS.M",
+  configName = pkgOptions(paste0("configName_", nlType)), nlPeriod,
+  tileNum)
 }
 \arguments{
+\item{nlType}{The particular VIIRS type e.g. VIIRS.D for daily VIIRS}
+
+\item{configName}{character the type of raster being processed}
+
 \item{nlPeriod}{the yearMonth in which the tile was created}
 
 \item{tileNum}{the index of the tile as given in nlTileIndex}
-
-\item{nlType}{The particular VIIRS type e.g. VIIRS_D for daily VIIRS}
 }
 \value{
 a character vector filename of the .tif VIIRS tile
@@ -22,7 +26,7 @@ Constructs the full path used to save/access the decompressed VIIRS .tif file
 \examples{
 #using default dirNlTiles
 \dontrun{
-Rnightlights:::getNlTileTifLclNamePathVIIRS("201401", 1)
+Rnightlights:::getNlTileTifLclNamePathVIIRS(nlType = "VIIRS.M", nlPeriod = "201401", tileNum = "1")
  #returns "/dataPath/tiles/VIIRS_2014_01_75N180W.tif"
  }
 

@@ -22,9 +22,11 @@ ctryNameToCode <- function(ctryNames)
 {
   ADMIN <- NULL #to avoid global variable note in CRAN
 
+  map <- getWorldMap()
+  
   if(missing(ctryNames))
   {
-    ctryList <- rworldmap::getMap()@data[,c("ADMIN", "ISO3")]
+    ctryList <- map@data[,c("ADMIN", "ISO3")]
 
     ctryList$ISO3 <- as.character(ctryList$ISO3)
     ctryList$ADMIN <- as.character(ctryList$ADMIN)
@@ -42,7 +44,7 @@ ctryNameToCode <- function(ctryNames)
   if(any(hasNonAlpha))
     stop(Sys.time(), ": Invalid ctryNames detected: ", paste0(ctryNames[hasNonAlpha], sep=","))
   
-  ctryList <- rworldmap::getMap()@data[,c("ISO3", "ADMIN")]
+  ctryList <- map@data[,c("ISO3", "ADMIN")]
   
   idx <- unlist(sapply(ctryNames, function(ctryName)
     {
@@ -103,9 +105,11 @@ ctryCodeToName <- function(ctryCodes)
 {
   ISO3 <- NULL #to avoid global variable note in CRAN
   
+  map <- getWorldMap()
+  
   if(missing(ctryCodes))
   {
-    ctryList <- rworldmap::getMap()@data[,c("ISO3", "ADMIN")]
+    ctryList <- map@data[,c("ISO3", "ADMIN")]
 
     ctryList$ISO3 <- as.character(ctryList$ISO3)
     ctryList$ADMIN <- as.character(ctryList$ADMIN)
@@ -118,7 +122,7 @@ ctryCodeToName <- function(ctryCodes)
   #if (class(ctryCodes) != "character" || is.null(ctryCodes) || is.na(ctryCodes) || ctryCodes =="" || ctryCodes == " ")
    # stop(Sys.time(), ": Invalid ctryCode: ", ctryCodes)
   
-  ctryList <- rworldmap::getMap()@data[,c("ISO3", "ADMIN")]
+  ctryList <- map@data[,c("ISO3", "ADMIN")]
 
   idx <- sapply(ctryCodes, function(ctryCode)
   {
@@ -248,7 +252,7 @@ validCtryCodes <- function(ctryCodes)
     stop(Sys.time(), ": Missing required parameter ctryCode")
   
   #if the format is invalid return FALSE no need to return an error
-  if (!is.character(ctryCodes) || is.null(ctryCodes) || is.na(ctryCodes) || ctryCodes =="")
+  if (length(ctryCodes) == 0)
     return(FALSE)
   
   return(toupper(ctryCodes) %in% toupper(getAllNlCtryCodes()))
@@ -327,7 +331,7 @@ getAllNlCtryCodes <- function(omit="none")
   
   #rworldmap has more country codes in countryRegions$ISO3 than in the map itself
   #select ctryCodes from the map data itself
-  map <- rworldmap::getMap()
+  map <- getWorldMap()
 
   #get the list of country codes from the rworldmap
   ctryCodes <- as.character(map@data$ISO3)

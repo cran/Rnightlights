@@ -4,8 +4,13 @@
 \alias{deleteNlDataCol}
 \title{Delete an aggregate nightlight data column in a country nightlights dataframe}
 \usage{
-deleteNlDataCol(ctryCode = NULL, admLevel, nlType, nlPeriod, statType,
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
+deleteNlDataCol(ctryCode = NULL, admLevel, nlType,
+  configName = pkgOptions(paste0("configName_", nlType)),
+  multiTileStrategy = pkgOptions("multiTileStrategy"),
+  multiTileMergeFun = pkgOptions("multiTileMergeFun"),
+  removeGasFlares = pkgOptions("removeGasFlares"), nlPeriod, nlStat,
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{country with the  data column to remove}
@@ -14,11 +19,21 @@ deleteNlDataCol(ctryCode = NULL, admLevel, nlType, nlPeriod, statType,
 
 \item{nlType}{the type of nightlight data}
 
+\item{configName}{character the type of raster being processed}
+
+\item{multiTileStrategy}{character How to handle multiple tiles per nlPeriod}
+
+\item{multiTileMergeFun}{character The function to use to merge tiles}
+
+\item{removeGasFlares}{logical Whether to perform gas flare removal pre-processing}
+
 \item{nlPeriod}{the nlPeriod that the dataCol belongs to}
 
-\item{statType}{the stat which produced the dataCol vector}
+\item{nlStat}{the stat which produced the dataCol vector}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }

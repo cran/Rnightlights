@@ -4,12 +4,17 @@
 \alias{processNLCountry}
 \title{Processes nightlights for an individual country in a particular nlPeriod}
 \usage{
-processNLCountry(ctryCode, admLevel, nlType, nlPeriod,
+processNLCountry(ctryCode, admLevel, nlType,
+  configName = pkgOptions(paste0("configName_", nlType)),
+  multiTileStrategy = pkgOptions("multiTileStrategy"),
+  multiTileMergeFun = pkgOptions("multiTileMergeFun"),
+  removeGasFlares = pkgOptions("removeGasFlares"), nlPeriod,
   nlStats = pkgOptions("nlStats"),
   downloadMethod = pkgOptions("downloadMethod"),
   cropMaskMethod = pkgOptions("cropMaskMethod"),
   extractMethod = pkgOptions("extractMethod"),
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{\code{character} The ctryCode of interest}
@@ -18,6 +23,14 @@ processNLCountry(ctryCode, admLevel, nlType, nlPeriod,
 ctryCode at which to calculate stats}
 
 \item{nlType}{\code{character} The nlType of interest}
+
+\item{configName}{character the type of raster being processed}
+
+\item{multiTileStrategy}{character How to handle multiple tiles per nlPeriod}
+
+\item{multiTileMergeFun}{character The function to use to merge tiles}
+
+\item{removeGasFlares}{logical Whether to perform gas flare removal pre-processing}
 
 \item{nlPeriod}{\code{character} The nlPeriod of interest}
 
@@ -33,6 +46,8 @@ gdal-based functions to crop and mask the country rasters}
 gdal-based functions to crop and mask the country rasters}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }
@@ -68,7 +83,7 @@ NOTE: \code{processNLCountry()} assumes that all inputs are available
     from the function \code{processNlData()} which does all the 
     preparation for processing. \code{processNlData()} which can process 
     multiple countries and time periods will download all the required 
-    tiles and polygons prior to calling \code{processnlcountry}. 
+    tiles and polygons prior to calling \code{processNlCountry}. 
     \code{getCtryNlData} can also be used with the option 
     \code{ignoreMissing=FALSE} which will call \code{processNlData} 
     in the background.

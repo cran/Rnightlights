@@ -6,7 +6,7 @@
 \usage{
 readCtryPolyAdmLayer(ctryCode = NULL, admLevel, polyType = "rds",
   dnldPoly = TRUE, gadmVersion = pkgOptions("gadmVersion"),
-  custPolyPath = NULL)
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{\code{character} The ctryCode of the country of interest}
@@ -20,6 +20,8 @@ format.}
 should we download it?}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }

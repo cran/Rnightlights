@@ -4,9 +4,13 @@
 \alias{processNlData}
 \title{Downloads nightlight tiles and country polygons and calls the function to process them}
 \usage{
-processNlData(ctryCodes, admLevels, nlTypes, nlPeriods,
+processNlData(ctryCodes, admLevels, nlTypes, configNames,
+  multiTileStrategy = pkgOptions("multiTileStrategy"),
+  multiTileMergeFun = pkgOptions("multiTileMergeFun"),
+  removeGasFlares = pkgOptions("removeGasFlares"), nlPeriods,
   nlStats = pkgOptions("nlStats"), custPolyPath = NULL,
   gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"),
   downloadMethod = pkgOptions("downloadMethod"),
   cropMaskMethod = pkgOptions("cropMaskMethod"),
   extractMethod = pkgOptions("extractMethod"))
@@ -19,6 +23,14 @@ which to calculate stats}
 
 \item{nlTypes}{the types of nightlights to process}
 
+\item{configNames}{character the types of raster being processed}
+
+\item{multiTileStrategy}{character How to handle multiple tiles per nlPeriod}
+
+\item{multiTileMergeFun}{character The function to use to merge tiles}
+
+\item{removeGasFlares}{logical Whether to perform gas flare removal pre-processing}
+
 \item{nlPeriods}{the nlPeriods of interest}
 
 \item{nlStats}{the statistics to calculate. If not provided will calculate
@@ -27,6 +39,8 @@ the stats specified in \code{pkgOptions("nlStats")}}
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{downloadMethod}{The method used to download rasters and polygons}
 

@@ -5,7 +5,8 @@
 \title{Checks if ctry admLevels are valid}
 \usage{
 validCtryAdmLvls(ctryCode = NULL, admLevels,
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{\code{character} The ctryCode of the country of interest}
@@ -13,6 +14,8 @@ validCtryAdmLvls(ctryCode = NULL, admLevels,
 \item{admLevels}{\code{character} The admLevel(s) to search for}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }

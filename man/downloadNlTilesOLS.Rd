@@ -4,12 +4,21 @@
 \alias{downloadNlTilesOLS}
 \title{Download OLS nightlight tile}
 \usage{
-downloadNlTilesOLS(nlPeriod, downloadMethod = pkgOptions("downloadMethod"))
+downloadNlTilesOLS(nlPeriod,
+  downloadMethod = pkgOptions("downloadMethod"), nlType = "OLS.Y",
+  configName = pkgOptions(paste0("configName_", nlType)),
+  multiTileStrategy = pkgOptions("multiTileStrategy"))
 }
 \arguments{
 \item{nlPeriod}{the nlPeriod of the tile}
 
 \item{downloadMethod}{The method to use for download.}
+
+\item{nlType}{A character string of nlType}
+
+\item{configName}{character the type of raster being processed}
+
+\item{multiTileStrategy}{character How to handle multiple tiles per nlPeriod}
 }
 \value{
 TRUE/FALSE Whether the download was successful

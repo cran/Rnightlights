@@ -5,7 +5,8 @@
 \title{Download VIIRS nightlight tile}
 \usage{
 downloadNlTilesVIIRS(nlPeriod, tileNum,
-  downloadMethod = pkgOptions("downloadMethod"), nlType)
+  downloadMethod = pkgOptions("downloadMethod"), nlType,
+  configName = pkgOptions(paste0("configName_", nlType)))
 }
 \arguments{
 \item{nlPeriod}{the nlPeriod of the tile to download}
@@ -15,6 +16,8 @@ downloadNlTilesVIIRS(nlPeriod, tileNum,
 \item{downloadMethod}{The method to use for download.}
 
 \item{nlType}{A character string of nlType}
+
+\item{configName}{character the type of raster being processed}
 }
 \value{
 TRUE/FALSE Whether the download was successful

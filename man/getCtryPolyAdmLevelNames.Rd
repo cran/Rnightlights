@@ -5,7 +5,8 @@
 \title{Get the list of admin level names in a polygon shapefile}
 \usage{
 getCtryPolyAdmLevelNames(ctryCode = NULL, lowestAdmLevel,
-  gadmVersion = pkgOptions("gadmVersion"), custPolyPath = NULL)
+  gadmVersion = pkgOptions("gadmVersion"),
+  gadmPolyType = pkgOptions("gadmPolyType"), custPolyPath = NULL)
 }
 \arguments{
 \item{ctryCode}{\code{character} The ctryCode of the country of interest}
@@ -13,6 +14,8 @@ getCtryPolyAdmLevelNames(ctryCode = NULL, lowestAdmLevel,
 \item{lowestAdmLevel}{\code{integer} The lowest admin level number to return}
 
 \item{gadmVersion}{The GADM version to use}
+
+\item{gadmPolyType}{The format of polygons to download from GADM}
 
 \item{custPolyPath}{Alternative to GADM. A path to a custom shapefile zip}
 }
